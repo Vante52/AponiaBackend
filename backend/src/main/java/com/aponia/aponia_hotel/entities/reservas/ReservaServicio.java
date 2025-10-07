@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,10 +27,12 @@ public class ReservaServicio {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reserva_id", nullable = false)
+    @JsonIgnore
     private Reserva reserva;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "servicio_id", nullable = false)
+    @JsonIgnore
     private Servicio servicio;
 
     @Column(name = "fecha", nullable = false)

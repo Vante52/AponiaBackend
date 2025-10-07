@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -22,14 +24,6 @@ public class Estancia {
     @Id
     @Column(name = "id", length = 36)
     private String id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reserva_id", nullable = false)
-    private Reserva reserva;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tipo_habitacion_id", nullable = false)
-    private HabitacionTipo tipoHabitacion;
 
     @Column(name = "check_in", nullable = false)
     private Boolean checkIn;
@@ -53,7 +47,18 @@ public class Estancia {
     private BigDecimal totalEstadia;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reserva_id", nullable = false)
+    @JsonIgnore
+    private Reserva reserva;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo_habitacion_id", nullable = false)
+// Mantén visible si quieres que el front vea el tipo; si no, también @JsonIgnore
+    private HabitacionTipo tipoHabitacion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "habitacion_asignada")
+    @JsonIgnore
     private Habitacion habitacionAsignada;
 
     @PrePersist

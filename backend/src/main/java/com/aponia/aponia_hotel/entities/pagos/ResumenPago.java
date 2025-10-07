@@ -7,7 +7,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import org.hibernate.annotations.UpdateTimestamp;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -26,6 +26,7 @@ public class ResumenPago {
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
     @JoinColumn(name = "reserva_id")
+    @JsonIgnore
     private Reserva reserva;
 
     @Column(name = "total_habitaciones", nullable = false, precision = 12, scale = 2)

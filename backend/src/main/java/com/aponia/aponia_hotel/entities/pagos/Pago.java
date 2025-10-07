@@ -22,6 +22,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 
 @Entity
 @Table(name = "pagos")
@@ -34,10 +36,6 @@ public class Pago {
     @Id
     @Column(name = "id", length = 36)
     private String id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reserva_id", nullable = false)
-    private Reserva reserva;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo", nullable = false, length = 20)
@@ -59,6 +57,11 @@ public class Pago {
 
     @Column(name = "concepto", length = 200)
     private String concepto;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reserva_id", nullable = false)
+    @JsonIgnore
+    private Reserva reserva;
 
     public enum TipoPago {
         ANTICIPO,

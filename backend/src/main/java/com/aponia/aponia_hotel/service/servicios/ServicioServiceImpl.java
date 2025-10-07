@@ -1,8 +1,10 @@
 package com.aponia.aponia_hotel.service.servicios;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+import com.aponia.aponia_hotel.entities.pagos.ResumenPago;
 import org.springframework.stereotype.Service;
 
 import com.aponia.aponia_hotel.entities.servicios.Servicio;
@@ -41,4 +43,25 @@ public class ServicioServiceImpl implements ServicioService {
     public void eliminar(String id) {
         repository.deleteById(id);
     }
+
+//    @Override
+//    public void actualizarResumen(String reservaId, BigDecimal totalHabitaciones, BigDecimal totalServicios, BigDecimal totalPagado) {
+//        ResumenPago resumen = repository.findByReservaId(reservaId)
+//                .orElseGet(() -> {
+//                    ResumenPago nuevo = new ResumenPago();
+//                    nuevo.setReservaId(reservaId);
+//                    // set referencia liviana a Reserva si quieres:
+//                    // Reserva r = new Reserva(); r.setId(reservaId);
+//                    // nuevo.setReserva(r);
+//                    return nuevo;
+//                });
+//
+//        resumen.setTotalHabitaciones(totalHabitaciones != null ? totalHabitaciones : BigDecimal.ZERO);
+//        resumen.setTotalServicios(totalServicios != null ? totalServicios : BigDecimal.ZERO);
+//        resumen.setTotalPagado(totalPagado != null ? totalPagado : BigDecimal.ZERO);
+//
+//        // @PrePersist/@PreUpdate recalcula totalReserva y saldoPendiente
+//        repository.save(resumen);
+//    }
 }
+

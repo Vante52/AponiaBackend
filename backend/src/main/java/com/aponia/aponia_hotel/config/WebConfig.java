@@ -14,7 +14,7 @@ public class WebConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cors = new CorsConfiguration();
-        cors.setAllowedOrigins(List.of("http://localhost:4200"));  // Angular dev
+        cors.setAllowedOrigins(List.of("http://localhost:8083"));  // Angular dev
         cors.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
         cors.setAllowedHeaders(List.of("*"));
         cors.setAllowCredentials(false); // cambiar a true si quiero usar cookies/sesión

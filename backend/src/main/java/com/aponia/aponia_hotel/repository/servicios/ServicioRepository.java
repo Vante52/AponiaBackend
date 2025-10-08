@@ -11,5 +11,5 @@ import java.util.Optional;
 public interface ServicioRepository extends JpaRepository<Servicio, String> {
     boolean existsByNombre(String nombre);
 
-    Optional<ResumenPago> findByReservaId(String reservaId);
+    //Optional<ResumenPago> findByReservaId(String reservaId);
 }

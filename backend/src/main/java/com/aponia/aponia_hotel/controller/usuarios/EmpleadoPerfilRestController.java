@@ -6,7 +6,9 @@ import com.aponia.aponia_hotel.service.usuarios.EmpleadoPerfilService;
 import com.aponia.aponia_hotel.service.usuarios.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -36,17 +38,41 @@ public class EmpleadoPerfilRestController {
 
     @PostMapping("/add")
     @Operation(summary = "Crea un perfil de empleado (MapsId)")
-    public EmpleadoPerfil add(@RequestParam String usuarioId, @RequestBody EmpleadoPerfil perfil) {
-        perfil.setUsuarioId(usuarioId);
-        Usuario u = usuarioService.obtener(usuarioId).orElseThrow();
-        perfil.setUsuario(u);
+    public EmpleadoPerfil add(@RequestBody EmpleadoPerfil perfil) {
+        String usuarioId = perfil.getUsuarioId();
+        if (usuarioId == null || usuarioId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El usuarioId es obligatorio");
+        }
+
+        Usuario usuario = usuarioService.obtener(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El usuario no existe"));
+
+        if (service.obtener(usuarioId).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El perfil de empleado ya existe para este usuario");
+        }
+
+        perfil.setUsuario(usuario);
         return service.crear(perfil);
     }
 
     @PutMapping("/update")
     @Operation(summary = "Actualiza un perfil de empleado")
     public EmpleadoPerfil update(@RequestBody EmpleadoPerfil perfil) {
-        return service.actualizar(perfil);
+        String usuarioId = perfil.getUsuarioId();
+        if (usuarioId == null || usuarioId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El usuarioId es obligatorio");
+        }
+
+        EmpleadoPerfil existente = service.obtener(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El perfil de empleado no existe"));
+
+        existente.setNombreCompleto(perfil.getNombreCompleto());
+        existente.setTelefono(perfil.getTelefono());
+        existente.setCargo(perfil.getCargo());
+        existente.setSalario(perfil.getSalario());
+        existente.setFechaContratacion(perfil.getFechaContratacion());
+
+        return service.actualizar(existente);
     }
 
     @DeleteMapping("/delete/{usuarioId}")

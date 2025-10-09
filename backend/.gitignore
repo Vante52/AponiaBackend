@@ -34,6 +34,7 @@ build/
 # Variables de entorno locales
 /.env
 /docker/.env
+.env
 
 # Volcados generados automáticamente (pueden ser grandes)
 /docker/initdb/*.sql

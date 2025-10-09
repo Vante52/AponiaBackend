@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -20,6 +21,8 @@ public class EmpleadoPerfilRestController {
 
     private final EmpleadoPerfilService service;
     private final UsuarioService usuarioService;
+
+    private static final BigDecimal SALARIO_MAXIMO = new BigDecimal("9999999999.99");
 
     public EmpleadoPerfilRestController(EmpleadoPerfilService service, UsuarioService usuarioService) {
         this.service = service;
@@ -51,6 +54,7 @@ public class EmpleadoPerfilRestController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El perfil de empleado ya existe para este usuario");
         }
 
+        validarSalario(perfil);
         perfil.setUsuario(usuario);
         return service.crear(perfil);
     }
@@ -66,6 +70,7 @@ public class EmpleadoPerfilRestController {
         EmpleadoPerfil existente = service.obtener(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El perfil de empleado no existe"));
 
+        validarSalario(perfil);
         existente.setNombreCompleto(perfil.getNombreCompleto());
         existente.setTelefono(perfil.getTelefono());
         existente.setCargo(perfil.getCargo());
@@ -73,6 +78,13 @@ public class EmpleadoPerfilRestController {
         existente.setFechaContratacion(perfil.getFechaContratacion());
 
         return service.actualizar(existente);
+    }
+
+    private void validarSalario(EmpleadoPerfil perfil) {
+        if (perfil.getSalario() != null && perfil.getSalario().compareTo(SALARIO_MAXIMO) > 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El salario no puede superar " + SALARIO_MAXIMO.toPlainString());
+        }
     }
 
     @DeleteMapping("/delete/{usuarioId}")

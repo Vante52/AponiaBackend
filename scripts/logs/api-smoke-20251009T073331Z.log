@@ -1,0 +1,27 @@
+
+[2025-10-09T07:33:31Z] Iniciando smoke test contra http://localhost:8080 con usuario apitest-1759995211
+
+[2025-10-09T07:33:31Z] POST http://localhost:8080/api/usuarios/add
+
+[2025-10-09T07:33:31Z] Payload:
+{
+  "id": "apitest-1759995211",
+  "email": "apitest-1759995211@example.com",
+  "password": "Secreto123!",
+  "rol": "CLIENTE",
+  "clientePerfil": {
+    "usuarioId": "apitest-1759995211",
+    "nombreCompleto": "Cliente Demo",
+    "telefono": "555-0001"
+  },
+  "empleadoPerfil": {
+    "usuarioId": "apitest-1759995211",
+    "nombreCompleto": "Empleado Demo",
+    "telefono": "555-0002",
+    "cargo": "Recepcionista",
+    "salario": 1800.50,
+    "fechaContratacion": "2020-01-01"
+  }
+}
+
+HTTP_STATUS:000

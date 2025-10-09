@@ -45,13 +45,32 @@ public class UsuarioRestController {
     }
 
     @PostMapping("/add")
-    @Operation(summary = "Crea un usuario (sin perfil)")
+    @Operation(summary = "Crea un usuario y vincula perfiles opcionales")
     public Usuario add(@RequestBody Usuario usuario) {
+        ClientePerfil clientePerfil = usuario.getClientePerfil();
+        EmpleadoPerfil empleadoPerfil = usuario.getEmpleadoPerfil();
+        usuario.setClientePerfil(null);
+        usuario.setEmpleadoPerfil(null);
+
         if (usuario.getId() == null || usuario.getId().isBlank()) {
             usuario.setId(UUID.randomUUID().toString());
         }
         if (usuario.getRol() == null) usuario.setRol(Usuario.UserRole.CLIENTE);
-        return usuarioService.crear(usuario);
+        Usuario creado = usuarioService.crear(usuario);
+
+        if (clientePerfil != null) {
+            clientePerfil.setUsuarioId(creado.getId());
+            clientePerfil.setUsuario(creado);
+            creado.setClientePerfil(clientePerfilService.crear(clientePerfil));
+        }
+
+        if (empleadoPerfil != null) {
+            empleadoPerfil.setUsuarioId(creado.getId());
+            empleadoPerfil.setUsuario(creado);
+            creado.setEmpleadoPerfil(empleadoPerfilService.crear(empleadoPerfil));
+        }
+
+        return creado;
     }
 
     @PutMapping("/update")

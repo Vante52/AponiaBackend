@@ -42,4 +42,8 @@ public class EmpleadoPerfil {
 
     @Column(name = "fecha_contratacion", nullable = false)
     private LocalDate fechaContratacion = LocalDate.now();
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 }

@@ -27,6 +27,10 @@ public class Usuario {
     @Column(name = "rol", nullable = false, length = 50)
     @Enumerated(EnumType.STRING)
     private UserRole rol = UserRole.CLIENTE; // Default value
+    
+    @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private EmpleadoPerfil empleadoPerfil;
+
 
     @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private ClientePerfil clientePerfil;

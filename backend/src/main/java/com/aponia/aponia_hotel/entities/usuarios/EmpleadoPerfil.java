@@ -1,23 +1,22 @@
 package com.aponia.aponia_hotel.entities.usuarios;
 
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Entity
-@Table(name = "clientes_perfil")
+@Table(name = "empleados_perfil")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClientePerfil {
+public class EmpleadoPerfil {
 
     @Id
     @Column(name = "usuario_id", length = 36)
@@ -35,7 +34,12 @@ public class ClientePerfil {
     @Column(name = "telefono", length = 25)
     private String telefono;
 
-    @CreationTimestamp
-    @Column(name = "fecha_registro", nullable = false, updatable = false)
-    private LocalDateTime fechaRegistro;
+    @Column(name = "cargo", nullable = false, length = 100)
+    private String cargo;
+
+    @Column(name = "salario", precision = 12, scale = 2)
+    private BigDecimal salario;
+
+    @Column(name = "fecha_contratacion", nullable = false)
+    private LocalDate fechaContratacion = LocalDate.now();
 }

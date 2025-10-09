@@ -6,6 +6,8 @@ import com.aponia.aponia_hotel.service.usuarios.ClientePerfilService;
 import com.aponia.aponia_hotel.service.usuarios.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
+import com.aponia.aponia_hotel.service.usuarios.EmpleadoPerfilService;
+import com.aponia.aponia_hotel.entities.usuarios.EmpleadoPerfil;
 
 import jakarta.servlet.http.HttpSession;
 import java.util.Map;
@@ -13,17 +15,20 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/home")
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "http://localhost:8083")
 public class HomeRestController {
 
     private final UsuarioService usuarioService;
     private final ClientePerfilService clientePerfilService;
+    private final EmpleadoPerfilService empleadoPerfilService;
 
-    public HomeRestController(UsuarioService usuarioService, ClientePerfilService clientePerfilService) {
+    public HomeRestController(UsuarioService usuarioService,
+                              ClientePerfilService clientePerfilService,
+                              EmpleadoPerfilService empleadoPerfilService) {
         this.usuarioService = usuarioService;
         this.clientePerfilService = clientePerfilService;
+        this.empleadoPerfilService = empleadoPerfilService;
     }
-
     @GetMapping("/dashboard")
     @Operation(summary = "Datos básicos para dashboard del usuario autenticado")
     public Object dashboard(HttpSession session) {
@@ -33,7 +38,13 @@ public class HomeRestController {
         if (opt.isEmpty()) return Map.of("ok", false, "error", "Usuario no encontrado");
         Usuario u = opt.get();
         ClientePerfil perfil = clientePerfilService.obtener(u.getId()).orElse(null);
-        return Map.of("ok", true, "usuario", u, "clientePerfil", perfil);
+        EmpleadoPerfil empleadoPerfil = empleadoPerfilService.obtener(u.getId()).orElse(null);
+        return Map.of(
+                "ok", true,
+                "usuario", u,
+                "clientePerfil", perfil,
+                "empleadoPerfil", empleadoPerfil
+        );
     }
 
     @PutMapping("/user_info/{email}")

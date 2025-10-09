@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Si pasas -h o --help al script mostrará instrucciones
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   cat <<'USAGE'
 Uso: scripts/api-smoke-test.sh [BASE_URL]
@@ -17,13 +18,13 @@ USAGE
   exit 0
 fi
 
+# URL base de la API, por defecto http://localhost:8083
 BASE_URL=${1:-http://localhost:8083}
 LOG_DIR=${LOG_DIR:-logs}
 TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
 LOG_FILE="${LOG_DIR}/api-smoke-${TIMESTAMP}.log"
 
 mkdir -p "$LOG_DIR"
-
 echo "Registrando resultados en: $LOG_FILE"
 
 declare -a TEMP_FILES
@@ -43,23 +44,23 @@ log_file() {
   tee -a "$LOG_FILE" < "$file" >/dev/null
 }
 
+# Función para enviar peticiones HTTP
 request() {
   local method="$1"; shift
   local url="$1"; shift
   local body_file="${1:-}"
-
   log "${method} ${url}"
   if [[ -n "$body_file" ]]; then
     log "Payload:"
     log_file "$body_file"
   fi
-
   curl -sS -X "$method" "$url" \
     -H 'Content-Type: application/json' \
     ${body_file:+--data @"$body_file"} \
     -w '\nHTTP_STATUS:%{http_code}\n' | tee -a "$LOG_FILE"
 }
 
+# Crea un archivo temporal con un payload JSON
 mkpayload() {
   local tmp
   tmp=$(mktemp)
@@ -68,11 +69,13 @@ mkpayload() {
   echo "$tmp"
 }
 
+# Genera un ID único para el usuario de pruebas
 USER_ID="apitest-$(date +%s)"
 USER_EMAIL="${USER_ID}@example.com"
 
 log "Iniciando smoke test contra ${BASE_URL} con usuario ${USER_ID}"
 
+# 1. Crear usuario (envía password en claro para que el controlador la encripte)
 USER_PAYLOAD=$(mkpayload <<JSON
 {
   "id": "${USER_ID}",
@@ -82,11 +85,12 @@ USER_PAYLOAD=$(mkpayload <<JSON
 }
 JSON
 )
-
 request POST "${BASE_URL}/api/usuarios/add" "$USER_PAYLOAD"
 
+# 2. Recuperar el usuario por ID
 request GET "${BASE_URL}/api/usuarios/find/${USER_ID}"
 
+# 3. Crear perfil de cliente
 CLIENTE_CREATE=$(mkpayload <<JSON
 {
   "usuarioId": "${USER_ID}",
@@ -97,6 +101,7 @@ JSON
 )
 request POST "${BASE_URL}/api/usuarios/${USER_ID}/perfil-cliente" "$CLIENTE_CREATE"
 
+# 4. Actualizar perfil de cliente (necesita que el controlador actualice el existente)
 CLIENTE_UPDATE=$(mkpayload <<JSON
 {
   "usuarioId": "${USER_ID}",
@@ -108,6 +113,7 @@ JSON
 )
 request POST "${BASE_URL}/api/usuarios/${USER_ID}/perfil-cliente" "$CLIENTE_UPDATE"
 
+# 5. Crear perfil de empleado
 EMPLEADO_CREATE=$(mkpayload <<JSON
 {
   "usuarioId": "${USER_ID}",
@@ -121,6 +127,7 @@ JSON
 )
 request POST "${BASE_URL}/api/usuarios/${USER_ID}/perfil-empleado" "$EMPLEADO_CREATE"
 
+# 6. Actualizar perfil de empleado
 EMPLEADO_UPDATE=$(mkpayload <<JSON
 {
   "usuarioId": "${USER_ID}",
@@ -134,6 +141,7 @@ JSON
 )
 request POST "${BASE_URL}/api/usuarios/${USER_ID}/perfil-empleado" "$EMPLEADO_UPDATE"
 
+# 7. Probar validación de salario con un valor inválido (debe devolver 400)
 SALARIO_INVALIDO=$(mkpayload <<JSON
 {
   "usuarioId": "${USER_ID}",
@@ -145,10 +153,10 @@ SALARIO_INVALIDO=$(mkpayload <<JSON
 }
 JSON
 )
-
 log "Probando validación de salario con un valor inválido"
 request PUT "${BASE_URL}/api/empleados-perfil/update" "$SALARIO_INVALIDO"
 
+# 8. Recuperar listado de usuarios final
 log "Recuperando listado final de usuarios"
 request GET "${BASE_URL}/api/usuarios/all"
 

@@ -1,3 +1,4 @@
+
 package com.aponia.aponia_hotel.controller.usuarios;
 
 import com.aponia.aponia_hotel.entities.usuarios.EmpleadoPerfil;
@@ -9,7 +10,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -71,6 +71,7 @@ public class EmpleadoPerfilRestController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El perfil de empleado no existe"));
 
         validarSalario(perfil);
+        // copiar los campos cambiados
         existente.setNombreCompleto(perfil.getNombreCompleto());
         existente.setTelefono(perfil.getTelefono());
         existente.setCargo(perfil.getCargo());

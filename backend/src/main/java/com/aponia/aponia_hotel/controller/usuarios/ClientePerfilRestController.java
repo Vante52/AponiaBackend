@@ -5,11 +5,11 @@ import com.aponia.aponia_hotel.entities.usuarios.Usuario;
 import com.aponia.aponia_hotel.service.usuarios.ClientePerfilService;
 import com.aponia.aponia_hotel.service.usuarios.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.UUID;
+    import io.swagger.v3.oas.annotations.tags.Tag;
+    import org.springframework.http.HttpStatus;
+    import org.springframework.web.bind.annotation.*;
+    import org.springframework.web.server.ResponseStatusException;
+    import java.util.List;
 
 @RestController
 @RequestMapping("/api/clientes-perfil")
@@ -38,16 +38,31 @@ public class ClientePerfilRestController {
     @PostMapping("/add")
     @Operation(summary = "Crea un perfil de cliente (MapsId)")
     public ClientePerfil add(@RequestParam String usuarioId, @RequestBody ClientePerfil perfil) {
+        Usuario usuario = usuarioService.obtener(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El usuario no existe"));
+        if (service.obtener(usuarioId).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "El perfil de cliente ya existe para este usuario");
+        }
         perfil.setUsuarioId(usuarioId);
-        Usuario u = usuarioService.obtener(usuarioId).orElseThrow();
-        perfil.setUsuario(u);
+        perfil.setUsuario(usuario);
         return service.crear(perfil);
     }
 
     @PutMapping("/update")
     @Operation(summary = "Actualiza un perfil de cliente")
     public ClientePerfil update(@RequestBody ClientePerfil perfil) {
-        return service.actualizar(perfil);
+        String usuarioId = perfil.getUsuarioId();
+        if (usuarioId == null || usuarioId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El usuarioId es obligatorio");
+        }
+        ClientePerfil existente = service.obtener(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El perfil de cliente no existe"));
+        // copiar campos actualizados
+        existente.setNombreCompleto(perfil.getNombreCompleto());
+        existente.setTelefono(perfil.getTelefono());
+        // aquí puedes copiar otros campos opcionales (dirección, etc.)
+        return service.actualizar(existente);
     }
 
     @DeleteMapping("/delete/{usuarioId}")

@@ -14,7 +14,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/usuarios")
-@CrossOrigin(origins = "http://localhost:8083")
+@CrossOrigin(origins = "http://localhost:4200")
 @Tag(name = "Usuarios", description = "CRUD de usuarios + vinculación de perfiles")
 public class UsuarioRestController {
 

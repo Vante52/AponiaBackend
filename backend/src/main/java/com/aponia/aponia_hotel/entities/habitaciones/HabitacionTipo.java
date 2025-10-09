@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import com.aponia.aponia_hotel.entities.resources.Imagen;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -44,8 +45,8 @@ public class HabitacionTipo {
     @JsonIgnore
     private List<Habitacion> habitaciones;
 
-    @OneToMany(mappedBy = "tipoHabitacion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
+    @OneToMany(mappedBy = "tipoHabitacion", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<Imagen> imagenes;
 
     @PrePersist

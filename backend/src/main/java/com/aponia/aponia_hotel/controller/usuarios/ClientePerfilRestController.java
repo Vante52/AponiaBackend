@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 
 @RestController
 @RequestMapping("/api/clientes-perfil")
-@CrossOrigin(origins = "http://localhost:8083")
+@CrossOrigin(origins = "http://localhost:4200")
 @Tag(name = "Perfiles de Cliente", description = "CRUD de perfiles de clientes")
 public class ClientePerfilRestController {
 

@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/empleados-perfil")
-@CrossOrigin(origins = "http://localhost:8083")
+@CrossOrigin(origins = "http://localhost:4200")
 @Tag(name = "Perfiles de Empleado", description = "CRUD de perfiles de empleados")
 public class EmpleadoPerfilRestController {
 

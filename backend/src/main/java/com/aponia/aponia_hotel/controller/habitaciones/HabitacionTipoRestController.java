@@ -5,13 +5,15 @@ import com.aponia.aponia_hotel.service.habitaciones.HabitacionService;
 import com.aponia.aponia_hotel.service.habitaciones.HabitacionTipoService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
+import com.aponia.aponia_hotel.controller.habitaciones.dto.HabitacionTipoDTO;
+import com.aponia.aponia_hotel.entities.resources.Imagen;
 
 import java.util.List;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/habitaciones-tipos")
-@CrossOrigin(origins = "http://localhost:8083")
+@CrossOrigin(origins = "http://localhost:4200")
 public class HabitacionTipoRestController {
 
     private final HabitacionTipoService service;
@@ -27,8 +29,20 @@ public class HabitacionTipoRestController {
 
     @GetMapping("/all")
     @Operation(summary = "Lista todos los tipos de habitación")
-    public List<HabitacionTipo> findAll() {
-        return service.listar();
+    public List<HabitacionTipoDTO> listar() {
+        return service.listar().stream()
+            .map(t -> new HabitacionTipoDTO(
+                t.getId(),
+                t.getNombre(),
+                t.getDescripcion(),
+                t.getAforoMaximo(),
+                t.getPrecioPorNoche(),
+                t.getActiva(),
+                t.getImagenes().stream()
+                    .map(Imagen::getUrl)
+                    .toList()
+            ))
+            .toList();
     }
 
     @GetMapping("/activos")

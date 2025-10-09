@@ -1,5 +1,7 @@
 package com.aponia.aponia_hotel.controller.servicios;
 
+import com.aponia.aponia_hotel.controller.servicios.dto.ServicioDTO;
+import com.aponia.aponia_hotel.entities.resources.Imagen;
 import com.aponia.aponia_hotel.entities.servicios.Servicio;
 import com.aponia.aponia_hotel.service.servicios.ServicioService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,7 +12,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/servicios")
-@CrossOrigin(origins = "http://localhost:8083")
+@CrossOrigin(origins = "http://localhost:4200")
 public class ServicioRestController {
 
     private final ServicioService service;
@@ -19,11 +21,30 @@ public class ServicioRestController {
         this.service = service;
     }
 
+    //@GetMapping("/all")
+    //@Operation(summary = "Lista todos los servicios")
+    //public List<Servicio> findAll() {
+    //    return service.listar();
+    //}
+
     @GetMapping("/all")
-    @Operation(summary = "Lista todos los servicios")
-    public List<Servicio> findAll() {
-        return service.listar();
+    public List<ServicioDTO> listarServicios() {
+    return service.listar().stream()
+        .map(s -> new ServicioDTO(
+            s.getId(),
+            s.getNombre(),
+            s.getDescripcion(),
+            s.getLugar(),
+            s.getPrecioPorPersona(),
+            s.getDuracionMinutos(),
+            s.getCapacidadMaxima(),
+            s.getImagenes().stream()
+                .map(Imagen::getUrl)
+                .toList()
+        ))
+        .toList();
     }
+
 
     @GetMapping("/find/{id}")
     @Operation(summary = "Obtiene un servicio por ID")

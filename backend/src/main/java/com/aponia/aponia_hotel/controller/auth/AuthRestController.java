@@ -92,9 +92,38 @@ public class AuthRestController {
     }
 
     // ============================================================
+    // REGISTRO DE ADMIN
+    // ============================================================
+    @PostMapping("/register-admin")
+    @Operation(summary = "Registro de nuevo cliente y creación de sesión HTTP")
+    public ResponseEntity<?> registerAdmin(@RequestBody Map<String, String> body, HttpSession session) {
+        try {
+            String email = body.get("email");
+            String password = body.get("password");
+            String nombreCompleto = body.get("nombreCompleto");
+            String telefono = body.get("telefono");
+
+            Usuario u = registroAppService.registrarAdmin(email, password, nombreCompleto, telefono);
+
+            session.setAttribute("AUTH_USER_ID", u.getId());
+            session.setAttribute("AUTH_USER_EMAIL", u.getEmail());
+            session.setAttribute("AUTH_USER_ROLE", u.getRol().name());
+
+            return ResponseEntity.ok(Map.of(
+                    "ok", true,
+                    "message", "Registro exitoso",
+                    "id", u.getId(),
+                    "rol", u.getRol().name()));
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "error", e.getMessage()));
+        }
+    }
+
+    // ============================================================
     // REGISTRO DE EMPLEADO (ADMIN USE)
     // ============================================================
-    @PostMapping("/register/empleado")
+    @PostMapping("/register-empleado")
     @Operation(summary = "Registro de nuevo empleado (solo ADMIN)")
     public ResponseEntity<?> registerEmpleado(@RequestBody Map<String, String> body) {
         try {

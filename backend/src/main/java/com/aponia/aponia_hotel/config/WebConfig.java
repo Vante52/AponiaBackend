@@ -19,7 +19,7 @@ public class WebConfig {
         cors.setAllowedOrigins(List.of("http://localhost:4200"));  // Angular dev
         cors.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
         cors.setAllowedHeaders(List.of("*"));
-        cors.setAllowCredentials(false); // cambiar a true si quiero usar cookies/sesión
+        cors.setAllowCredentials(true); // cambiar a true si quiero usar cookies/sesión
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cors);
         return source;

@@ -1,86 +1,97 @@
 package com.aponia.aponia_hotel.controller.habitaciones;
 
 import com.aponia.aponia_hotel.entities.habitaciones.HabitacionTipo;
+import com.aponia.aponia_hotel.entities.resources.Imagen;
 import com.aponia.aponia_hotel.service.habitaciones.HabitacionService;
 import com.aponia.aponia_hotel.service.habitaciones.HabitacionTipoService;
-import io.swagger.v3.oas.annotations.Operation;
-import org.springframework.web.bind.annotation.*;
 import com.aponia.aponia_hotel.controller.habitaciones.dto.HabitacionTipoDTO;
-import com.aponia.aponia_hotel.entities.resources.Imagen;
+import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/habitaciones-tipos")
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "http://localhost:4200", allowCredentials = "true")
 public class HabitacionTipoRestController {
 
     private final HabitacionTipoService service;
     private final HabitacionService habitacionService;
 
-    public HabitacionTipoRestController(HabitacionTipoService service,
-                                        HabitacionService habitacionService) {
+    public HabitacionTipoRestController(HabitacionTipoService service, HabitacionService habitacionService) {
         this.service = service;
         this.habitacionService = habitacionService;
     }
 
-    // ===== Lecturas =====
-
-    @GetMapping("/all")
+    // ====== GET ALL ======
+    @GetMapping
     @Operation(summary = "Lista todos los tipos de habitación")
-    public List<HabitacionTipoDTO> listar() {
-        return service.listar().stream()
-            .map(t -> new HabitacionTipoDTO(
-                t.getId(),
-                t.getNombre(),
-                t.getDescripcion(),
-                t.getAforoMaximo(),
-                t.getPrecioPorNoche(),
-                t.getActiva(),
-                t.getImagenes().stream()
-                    .map(Imagen::getUrl)
-                    .toList()
-            ))
-            .toList();
+    public ResponseEntity<List<HabitacionTipoDTO>> listar() {
+        var lista = service.listar().stream()
+                .map(t -> new HabitacionTipoDTO(
+                        t.getId(),
+                        t.getNombre(),
+                        t.getDescripcion(),
+                        t.getAforoMaximo(),
+                        t.getPrecioPorNoche(),
+                        t.getActiva(),
+                        t.getImagenes().stream().map(Imagen::getUrl).toList()))
+                .toList();
+        return ResponseEntity.ok(lista);
     }
 
+    // ====== GET ACTIVOS ======
     @GetMapping("/activos")
-    @Operation(summary = "Lista tipos de habitación activos")
-    public List<HabitacionTipo> findActivos() {
-        return service.listarActivos();
+    @Operation(summary = "Lista los tipos de habitación activos")
+    public ResponseEntity<List<HabitacionTipo>> listarActivos() {
+        return ResponseEntity.ok(service.listarActivos());
     }
 
-    @GetMapping("/find/{id}")
+    // ====== GET BY ID ======
+    @GetMapping("/{id}")
     @Operation(summary = "Obtiene un tipo de habitación por ID")
-    public HabitacionTipo findOne(@PathVariable String id) {
-        return service.obtener(id).orElse(null);
+    public ResponseEntity<HabitacionTipo> findById(@PathVariable String id) {
+        return service.obtener(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // ===== Mutaciones =====
-
-    @PostMapping("/add")
+    // ====== POST (CREATE) ======
+    @PostMapping
     @Operation(summary = "Crea un nuevo tipo de habitación")
-    public void add(@RequestBody HabitacionTipo tipo) {
-        if ((tipo.getId() == null) || tipo.getId().isBlank()) {
-            tipo.setId(UUID.randomUUID().toString());
+    public ResponseEntity<HabitacionTipo> create(@RequestBody HabitacionTipo tipo) {
+        tipo.setId(UUID.randomUUID().toString());
+
+        if (tipo.getImagenes() != null) {
+            tipo.getImagenes().forEach(img -> {
+                img.setTipoHabitacion(tipo); // vincula correctamente
+            });
         }
-        service.crear(tipo);
+
+        HabitacionTipo creado = service.crear(tipo);
+        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
-    @PutMapping("/update")
+    // ====== PUT (UPDATE) ======
+    @PutMapping("/{id}")
     @Operation(summary = "Actualiza un tipo de habitación existente")
-    public void update(@RequestBody HabitacionTipo tipo) {
+    public ResponseEntity<Void> update(@PathVariable String id, @RequestBody HabitacionTipo tipo) {
+        tipo.setId(id);
         service.actualizar(tipo);
+        return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/delete/{id}")
-    @Operation(summary = "Elimina un tipo de habitación por ID (si no tiene habitaciones asociadas)")
-    public void delete(@PathVariable String id) {
-        // Mismo criterio que en tu MVC: no borrar si hay habitaciones del tipo
+    // ====== DELETE ======
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Elimina un tipo de habitación si no tiene habitaciones asociadas")
+    public ResponseEntity<String> delete(@PathVariable String id) {
         if (!habitacionService.listarPorTipo(id).isEmpty()) {
-            throw new IllegalStateException("No se puede eliminar: existen habitaciones asociadas a este tipo");
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("No se puede eliminar: hay habitaciones asociadas");
         }
         service.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }

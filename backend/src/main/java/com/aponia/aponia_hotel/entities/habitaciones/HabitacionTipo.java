@@ -1,13 +1,11 @@
 package com.aponia.aponia_hotel.entities.habitaciones;
 
-
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import com.aponia.aponia_hotel.entities.resources.Imagen;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import java.math.BigDecimal;
@@ -42,11 +40,11 @@ public class HabitacionTipo {
 
     // Evitar respuesta recursiva (Tipo -> Habitaciones -> Tipo)
     @OneToMany(mappedBy = "tipo", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
+    @JsonManagedReference("habitacion-tipo")
     private List<Habitacion> habitaciones;
 
     @OneToMany(mappedBy = "tipoHabitacion", cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonManagedReference("imagen-tipo-habitacion")
     private List<Imagen> imagenes;
 
     @PrePersist

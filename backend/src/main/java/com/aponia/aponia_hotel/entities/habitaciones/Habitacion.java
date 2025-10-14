@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 @Entity
 @Table(name = "habitaciones")
@@ -19,10 +19,9 @@ public class Habitacion {
     @Column(name = "id", length = 36)
     private String id;
 
-    // Cortamos el ciclo Tipo -> Habitaciones -> Tipo
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_id", nullable = false)
-    @JsonIgnore
+    @JsonBackReference("habitacion-tipo")
     private HabitacionTipo tipo;
 
     @Column(name = "numero", nullable = false, unique = true)
@@ -35,7 +34,7 @@ public class Habitacion {
     @PreUpdate
     public void validate() {
         if (numero == null || numero <= 0) {
-            throw new IllegalStateException("numero must be positive");
+            throw new IllegalStateException("El número debe ser positivo");
         }
     }
 }

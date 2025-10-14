@@ -49,7 +49,7 @@ public class Servicio {
     private List<ServicioDisponibilidad> disponibilidades;
 
     @OneToMany(mappedBy = "servicio", cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonManagedReference("imagen-servicio")
     private List<Imagen> imagenes;
 
     @OneToMany(mappedBy = "servicio", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

@@ -24,18 +24,26 @@ public class Imagen {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "servicio_id")
-    @JsonBackReference
+    @JsonBackReference("imagen-servicio")
     private Servicio servicio;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_habitacion_id")
-    @JsonBackReference
+    @JsonBackReference("imagen-tipo-habitacion")
     private HabitacionTipo tipoHabitacion;
 
     @Column(name = "url", nullable = false, length = 500)
     private String url;
 
+    // ✅ Generar automáticamente el ID si no viene
     @PrePersist
+    public void ensureId() {
+        if (id == null || id.isBlank()) {
+            id = java.util.UUID.randomUUID().toString();
+        }
+        validate();
+    }
+
     @PreUpdate
     public void validate() {
         if ((servicio != null && tipoHabitacion != null) ||

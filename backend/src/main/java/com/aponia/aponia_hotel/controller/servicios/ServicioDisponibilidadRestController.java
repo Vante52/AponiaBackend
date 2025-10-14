@@ -4,6 +4,8 @@ import com.aponia.aponia_hotel.entities.servicios.ServicioDisponibilidad;
 import com.aponia.aponia_hotel.service.servicios.ServicioDisponibilidadService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -14,7 +16,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/disponibilidades")
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "http://localhost:4200", allowCredentials = "true")
 public class ServicioDisponibilidadRestController {
 
     private final ServicioDisponibilidadService service;
@@ -23,79 +25,87 @@ public class ServicioDisponibilidadRestController {
         this.service = service;
     }
 
-    // === Lecturas básicas ===
+    // ============================
+    // ======= LECTURAS GET =======
+    // ============================
 
-    @GetMapping("/all")
+    @GetMapping
     @Operation(summary = "Lista todas las disponibilidades")
-    public List<ServicioDisponibilidad> findAll() {
-        return service.listar();
+    public ResponseEntity<List<ServicioDisponibilidad>> listar() {
+        return ResponseEntity.ok(service.listar());
     }
 
-    @GetMapping("/find/{id}")
+    @GetMapping("/{id}")
     @Operation(summary = "Obtiene una disponibilidad por ID")
-    public ServicioDisponibilidad findOne(@PathVariable String id) {
-        return service.obtener(id).orElse(null);
+    public ResponseEntity<ServicioDisponibilidad> obtener(@PathVariable String id) {
+        return service.obtener(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
-
-    // === Consultas especializadas ===
 
     @GetMapping("/servicio/{servicioId}/fecha/{fecha}")
     @Operation(summary = "Lista disponibilidades de un servicio en una fecha con capacidad mínima")
-    public List<ServicioDisponibilidad> listarDisponibles(
+    public ResponseEntity<List<ServicioDisponibilidad>> listarDisponibles(
             @PathVariable String servicioId,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
             @RequestParam(name = "capacidad", defaultValue = "1") int capacidadRequerida) {
-        return service.listarDisponibles(servicioId, fecha, capacidadRequerida);
+        return ResponseEntity.ok(service.listarDisponibles(servicioId, fecha, capacidadRequerida));
     }
 
     @GetMapping("/servicio/{servicioId}/rango")
     @Operation(summary = "Lista disponibilidades de un servicio en un rango de fechas")
-    public List<ServicioDisponibilidad> listarPorRango(
+    public ResponseEntity<List<ServicioDisponibilidad>> listarPorRango(
             @PathVariable String servicioId,
             @RequestParam("inicio") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
             @RequestParam("fin") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin) {
-        return service.listarPorRangoFechas(servicioId, fechaInicio, fechaFin);
+        return ResponseEntity.ok(service.listarPorRangoFechas(servicioId, fechaInicio, fechaFin));
     }
 
     @GetMapping("/buscar")
-    @Operation(summary = "Busca una disponibilidad específica (servicio, fecha, horaInicio)")
-    public ServicioDisponibilidad buscarDisponibilidad(
+    @Operation(summary = "Busca una disponibilidad específica")
+    public ResponseEntity<ServicioDisponibilidad> buscarDisponibilidad(
             @RequestParam String servicioId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime horaInicio) {
         Optional<ServicioDisponibilidad> r = service.buscarDisponibilidad(servicioId, fecha, horaInicio);
-        return r.orElse(null);
+        return r.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/existe")
     @Operation(summary = "Verifica si existe disponibilidad en (servicio, fecha, horaInicio)")
-    public boolean existeDisponibilidad(
+    public ResponseEntity<Boolean> existeDisponibilidad(
             @RequestParam String servicioId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime horaInicio) {
-        return service.existeDisponibilidad(servicioId, fecha, horaInicio);
+        return ResponseEntity.ok(service.existeDisponibilidad(servicioId, fecha, horaInicio));
     }
 
-    // === Mutaciones estilo video (void + @RequestBody) ===
+    // ============================
+    // ======= MUTACIONES =========
+    // ============================
 
-    @PostMapping("/add")
+    @PostMapping
     @Operation(summary = "Crea una nueva disponibilidad")
-    public void add(@RequestBody ServicioDisponibilidad disponibilidad) {
+    public ResponseEntity<ServicioDisponibilidad> crear(@RequestBody ServicioDisponibilidad disponibilidad) {
         if (disponibilidad.getId() == null || disponibilidad.getId().isBlank()) {
             disponibilidad.setId(UUID.randomUUID().toString());
         }
-        service.crear(disponibilidad);
+        ServicioDisponibilidad creada = service.crear(disponibilidad);
+        return ResponseEntity.status(HttpStatus.CREATED).body(creada);
     }
 
-    @PutMapping("/update")
+    @PutMapping("/{id}")
     @Operation(summary = "Actualiza una disponibilidad existente")
-    public void update(@RequestBody ServicioDisponibilidad disponibilidad) {
+    public ResponseEntity<Void> actualizar(@PathVariable String id, @RequestBody ServicioDisponibilidad disponibilidad) {
+        disponibilidad.setId(id);
         service.actualizar(disponibilidad);
+        return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/delete/{id}")
+    @DeleteMapping("/{id}")
     @Operation(summary = "Elimina una disponibilidad por ID")
-    public void delete(@PathVariable String id) {
+    public ResponseEntity<Void> eliminar(@PathVariable String id) {
         service.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }

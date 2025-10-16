@@ -15,7 +15,7 @@ public interface EstanciaRepository extends JpaRepository<Estancia, String> {
     @Query("SELECT COUNT(DISTINCT e.habitacionAsignada) FROM Estancia e " +
            "WHERE e.tipoHabitacion.id = :tipoHabitacionId " +
            "AND e.reserva.estado = 'CONFIRMADA' " +
-           "AND ((e.checkIn <= :checkOut AND e.checkOut >= :checkIn))")
+           "AND (e.entrada < :checkOut AND e.salida > :checkIn)")
     long contarHabitacionesOcupadas(
         @Param("tipoHabitacionId") String tipoHabitacionId,
         @Param("checkIn") LocalDate checkIn,
@@ -24,7 +24,7 @@ public interface EstanciaRepository extends JpaRepository<Estancia, String> {
     @Query("SELECT e FROM Estancia e " +
            "WHERE e.habitacionAsignada.id = :habitacionId " +
            "AND e.reserva.estado = 'CONFIRMADA' " +
-           "AND ((e.checkIn <= :checkOut AND e.checkOut >= :checkIn))")
+           "AND (e.entrada < :checkOut AND e.salida > :checkIn)")
     List<Estancia> findOverlappingStays(
         @Param("habitacionId") String habitacionId,
         @Param("checkIn") LocalDate checkIn,
@@ -33,7 +33,7 @@ public interface EstanciaRepository extends JpaRepository<Estancia, String> {
     @Query("SELECT e FROM Estancia e " +
            "WHERE e.tipoHabitacion.id = :tipoHabitacionId " +
            "AND e.reserva.estado = 'CONFIRMADA' " +
-           "AND e.checkIn = :fecha")
+           "AND e.entrada = :fecha")
     List<Estancia> findCheckinsByTipoHabitacionAndFecha(
         @Param("tipoHabitacionId") String tipoHabitacionId,
         @Param("fecha") LocalDate fecha);
@@ -41,7 +41,7 @@ public interface EstanciaRepository extends JpaRepository<Estancia, String> {
     @Query("SELECT e FROM Estancia e " +
            "WHERE e.tipoHabitacion.id = :tipoHabitacionId " +
            "AND e.reserva.estado = 'CONFIRMADA' " +
-           "AND e.checkOut = :fecha")
+           "AND e.salida = :fecha")
     List<Estancia> findCheckoutsByTipoHabitacionAndFecha(
         @Param("tipoHabitacionId") String tipoHabitacionId,
         @Param("fecha") LocalDate fecha);

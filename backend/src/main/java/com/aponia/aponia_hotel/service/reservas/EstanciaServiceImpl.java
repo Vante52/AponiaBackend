@@ -141,8 +141,8 @@ public class EstanciaServiceImpl implements EstanciaService {
     }
 
     private void validarEstancia(Estancia estancia) {
-        if (estancia.getCheckIn() == null || estancia.getCheckOut() == null) {
-            throw new IllegalArgumentException("Las fechas de check-in y check-out son requeridas");
+        if (estancia.getEntrada() == null || estancia.getSalida() == null) {
+            throw new IllegalArgumentException("Las fechas de entrada y salida son requeridas");
         }
         if (!estancia.getSalida().isAfter(estancia.getEntrada())) {
             throw new IllegalArgumentException("La fecha de check-out debe ser posterior a la de check-in");

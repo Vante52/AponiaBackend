@@ -22,4 +22,5 @@ public interface ReservaService {
     public void completarReserva(String id);
     public boolean verificarDisponibilidad(String tipoHabitacionId, LocalDate entrada, LocalDate salida, int numeroHuespedes);
     public double calcularTotalReserva(String id);
+    Reserva crearReservaCliente(String clienteId, String tipoHabitacionId, LocalDate entrada, LocalDate salida, Integer numeroHuespedes, String notas);
 }

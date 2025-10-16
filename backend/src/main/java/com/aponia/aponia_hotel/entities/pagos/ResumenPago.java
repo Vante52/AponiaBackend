@@ -7,6 +7,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.domain.Persistable;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -17,7 +18,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResumenPago {
+public class ResumenPago implements Persistable<String> {
 
     @Id
     @Column(name = "reserva_id", length = 36)
@@ -47,6 +48,41 @@ public class ResumenPago {
     @UpdateTimestamp
     @Column(name = "ultima_actualizacion", nullable = false)
     private LocalDateTime ultimaActualizacion;
+
+    @Transient
+    @JsonIgnore
+    private boolean isNew = true;
+
+    @Override
+    public String getId() {
+        return reservaId;
+    }
+
+    @Override
+    public boolean isNew() {
+        return isNew || reservaId == null;
+    }
+
+    public void markAsNew() {
+        this.isNew = true;
+    }
+
+    public void markAsPersisted() {
+        this.isNew = false;
+    }
+
+    @PostLoad
+    @PostPersist
+    private void trackPersistenceState() {
+        markAsPersisted();
+    }
+
+    public void setReserva(Reserva reserva) {
+        this.reserva = reserva;
+        if (reserva != null) {
+            this.reservaId = reserva.getId();
+        }
+    }
 
     @PrePersist
     @PreUpdate

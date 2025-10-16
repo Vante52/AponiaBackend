@@ -33,7 +33,7 @@ public class Reserva {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cliente_id", nullable = false)
-    @JsonIgnoreProperties({"passwordHash", "empleadoPerfil", "clientePerfil", "hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({ "passwordHash", "empleadoPerfil", "clientePerfil", "hibernateLazyInitializer", "handler" })
     private Usuario cliente;
 
     @CreationTimestamp
@@ -47,8 +47,9 @@ public class Reserva {
     @Column(name = "notas", columnDefinition = "TEXT")
     private String notas;
 
+    // En Reserva.java
     @OneToMany(mappedBy = "reserva", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
+    @JsonIgnoreProperties({ "reserva", "hibernateLazyInitializer", "handler" })
     private List<Estancia> estancias;
 
     @OneToMany(mappedBy = "reserva", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -59,9 +60,16 @@ public class Reserva {
     @JsonIgnore
     private List<Pago> pagos;
 
-    @OneToOne(mappedBy = "reserva", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "reserva", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @JsonIgnore
     private ResumenPago resumenPago;
+
+    public void setResumenPago(ResumenPago resumenPago) {
+        this.resumenPago = resumenPago;
+        if (resumenPago != null) {
+            resumenPago.setReserva(this);
+        }
+    }
 
     public enum EstadoReserva {
         PENDIENTE,

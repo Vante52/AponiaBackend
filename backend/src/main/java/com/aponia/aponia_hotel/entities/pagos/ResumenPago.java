@@ -7,7 +7,6 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.data.domain.Persistable;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -18,15 +17,14 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResumenPago implements Persistable<String> {
+public class ResumenPago {
 
     @Id
-    @Column(name = "reserva_id", length = 36)
-    private String reservaId;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "reserva_id")
+    @JoinColumn(name = "reserva_id", unique = true, nullable = false)
     @JsonIgnore
     private Reserva reserva;
 
@@ -49,41 +47,6 @@ public class ResumenPago implements Persistable<String> {
     @Column(name = "ultima_actualizacion", nullable = false)
     private LocalDateTime ultimaActualizacion;
 
-    @Transient
-    @JsonIgnore
-    private boolean isNew = true;
-
-    @Override
-    public String getId() {
-        return reservaId;
-    }
-
-    @Override
-    public boolean isNew() {
-        return isNew || reservaId == null;
-    }
-
-    public void markAsNew() {
-        this.isNew = true;
-    }
-
-    public void markAsPersisted() {
-        this.isNew = false;
-    }
-
-    @PostLoad
-    @PostPersist
-    private void trackPersistenceState() {
-        markAsPersisted();
-    }
-
-    public void setReserva(Reserva reserva) {
-        this.reserva = reserva;
-        if (reserva != null) {
-            this.reservaId = reserva.getId();
-        }
-    }
-
     @PrePersist
     @PreUpdate
     public void validate() {
@@ -103,7 +66,7 @@ public class ResumenPago implements Persistable<String> {
             throw new IllegalStateException("La reserva es requerida");
         }
 
-        // Calcular total y saldo pendiente
+        // Calcular totales
         totalReserva = totalHabitaciones.add(totalServicios);
         saldoPendiente = totalReserva.subtract(totalPagado);
     }

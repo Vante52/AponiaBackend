@@ -18,11 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Transactional
@@ -69,30 +65,65 @@ public class ReservaServiceImpl implements ReservaService {
     @Transactional(readOnly = true)
     public List<Reserva> listarReservasActivas(String clienteId) {
         return repository.findByClienteIdAndEstadoIn(
-            clienteId,
-            Arrays.asList(EstadoReserva.PENDIENTE, EstadoReserva.CONFIRMADA)
-        );
+                clienteId,
+                Arrays.asList(EstadoReserva.PENDIENTE, EstadoReserva.CONFIRMADA));
     }
+
+    private ResumenPago prepararResumenPago(Reserva reserva) {
+    // 1️⃣ Buscar si ya existe un resumen por el ID de la reserva
+    Optional<ResumenPago> existente = resumenPagoRepository.findByReservaId(reserva.getId());
+
+    ResumenPago resumen = existente.orElseGet(ResumenPago::new);
+    resumen.setReserva(reserva);
+
+    // 2️⃣ Calcular totales
+    BigDecimal totalHabitaciones = calcularTotalHabitaciones(reserva);
+    BigDecimal totalServicios = calcularTotalServicios(reserva);
+    BigDecimal totalReserva = totalHabitaciones.add(totalServicios);
+
+    resumen.setTotalHabitaciones(totalHabitaciones);
+    resumen.setTotalServicios(totalServicios);
+    resumen.setTotalReserva(totalReserva);
+
+    if (resumen.getTotalPagado() == null) {
+        resumen.setTotalPagado(BigDecimal.ZERO);
+    }
+
+    resumen.setSaldoPendiente(totalReserva.subtract(resumen.getTotalPagado()));
+
+    return resumen;
+}
+
 
     @Override
-    public Reserva crear(Reserva reserva) {
-        validarReserva(reserva);
-        if (reserva.getId() == null || reserva.getId().isBlank()) {
-            reserva.setId(UUID.randomUUID().toString());
-        }
-        if (repository.existsByCodigo(reserva.getCodigo())) {
-            throw new IllegalArgumentException("Ya existe una reserva con ese código");
-        }
+public Reserva crear(Reserva reserva) {
+    validarReserva(reserva);
 
-        reserva.setEstado(EstadoReserva.PENDIENTE);
-
-        ResumenPago resumen = prepararResumenPago(reserva);
-        reserva.setResumenPago(resumen);
-
-        Reserva nuevaReserva = repository.save(reserva);
-
-        return nuevaReserva;
+    if (reserva.getId() == null || reserva.getId().isBlank()) {
+        reserva.setId(UUID.randomUUID().toString());
     }
+
+    if (repository.existsByCodigo(reserva.getCodigo())) {
+        throw new IllegalArgumentException("Ya existe una reserva con ese código");
+    }
+
+    reserva.setEstado(EstadoReserva.PENDIENTE);
+    reserva.setResumenPago(null);
+
+    // 1️⃣ Guarda la reserva sin resumen (persistencia segura)
+    Reserva guardada = repository.save(reserva);
+
+    // 2️⃣ Crea el resumen asociado
+    ResumenPago resumen = prepararResumenPago(guardada);
+    resumenPagoRepository.save(resumen); // ⚡ GUARDAR AQUÍ directamente
+
+    // 3️⃣ Asocia el resumen en memoria, pero no vuelvas a guardar la reserva
+    guardada.setResumenPago(resumen);
+
+    // 4️⃣ Devuelve la reserva ya completa
+    return guardada;
+}
+
 
     @Override
     @Transactional(readOnly = true)
@@ -109,14 +140,12 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     public Reserva actualizar(Reserva reserva) {
         validarReserva(reserva);
-        Optional<Reserva> existente = repository.findById(reserva.getId());
-        if (existente.isEmpty()) {
-            throw new IllegalArgumentException("No se encontró la reserva con ID: " + reserva.getId());
-        }
+        Reserva reservaExistente = repository.findById(reserva.getId())
+                .orElseThrow(
+                        () -> new IllegalArgumentException("No se encontró la reserva con ID: " + reserva.getId()));
 
-        Reserva reservaExistente = existente.get();
         if (!reservaExistente.getCodigo().equals(reserva.getCodigo()) &&
-            repository.existsByCodigo(reserva.getCodigo())) {
+                repository.existsByCodigo(reserva.getCodigo())) {
             throw new IllegalArgumentException("Ya existe una reserva con ese código");
         }
 
@@ -177,27 +206,26 @@ public class ReservaServiceImpl implements ReservaService {
     }
 
     @Override
-    public boolean verificarDisponibilidad(String tipoHabitacionId, LocalDate entrada, LocalDate salida, int numeroHuespedes) {
-        // Verificar que el tipo de habitación existe y tiene capacidad suficiente
+    public boolean verificarDisponibilidad(String tipoHabitacionId, LocalDate entrada, LocalDate salida,
+            int numeroHuespedes) {
         Optional<HabitacionTipo> tipo = habitacionTipoRepository.findById(tipoHabitacionId);
         if (tipo.isEmpty() || !tipo.get().getActiva() || tipo.get().getAforoMaximo() < numeroHuespedes) {
             return false;
         }
 
-        // Contar cuántas habitaciones de este tipo están ocupadas en las fechas solicitadas
         long habitacionesOcupadas = estanciaRepository.contarHabitacionesOcupadas(
-            tipoHabitacionId, entrada, salida);
+                tipoHabitacionId, entrada, salida);
 
-        // Contar el total de habitaciones de este tipo
         long totalHabitaciones = tipo.get().getHabitaciones().stream()
-            .filter(h -> h.getActiva())
-            .count();
+                .filter(h -> h.getActiva())
+                .count();
 
         return habitacionesOcupadas < totalHabitaciones;
     }
 
     @Override
-    public Reserva crearReservaCliente(String clienteId, String tipoHabitacionId, LocalDate entrada, LocalDate salida, Integer numeroHuespedes, String notas) {
+    public Reserva crearReservaCliente(String clienteId, String tipoHabitacionId, LocalDate entrada, LocalDate salida,
+            Integer numeroHuespedes, String notas) {
         Objects.requireNonNull(clienteId, "El cliente es requerido");
         Objects.requireNonNull(tipoHabitacionId, "El tipo de habitación es requerido");
         Objects.requireNonNull(entrada, "La fecha de entrada es requerida");
@@ -211,13 +239,13 @@ public class ReservaServiceImpl implements ReservaService {
             throw new IllegalArgumentException("El número de huéspedes debe ser positivo");
         }
 
-        String clienteIdNormalizado = normalizarUuid(clienteId, "del cliente");
-        Usuario cliente = usuarioRepository.findById(clienteIdNormalizado)
-            .orElseThrow(() -> new IllegalArgumentException("No se encontró el cliente indicado"));
+        String clienteIdValido = validarId(clienteId, "del cliente");
+        Usuario cliente = usuarioRepository.findById(clienteIdValido)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el cliente indicado"));
 
-        String tipoHabitacionIdNormalizado = normalizarUuid(tipoHabitacionId, "del tipo de habitación");
-        HabitacionTipo tipoHabitacion = habitacionTipoRepository.findById(tipoHabitacionIdNormalizado)
-            .orElseThrow(() -> new IllegalArgumentException("No se encontró el tipo de habitación solicitado"));
+        String tipoHabitacionIdValido = validarId(tipoHabitacionId, "del tipo de habitación");
+        HabitacionTipo tipoHabitacion = habitacionTipoRepository.findById(tipoHabitacionIdValido)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el tipo de habitación solicitado"));
 
         if (!Boolean.TRUE.equals(tipoHabitacion.getActiva())) {
             throw new IllegalStateException("El tipo de habitación no está disponible actualmente");
@@ -252,14 +280,13 @@ public class ReservaServiceImpl implements ReservaService {
         estancia.setTipoHabitacion(tipoHabitacion);
         estancia.setPrecioPorNoche(tipoHabitacion.getPrecioPorNoche());
         BigDecimal totalEstadia = tipoHabitacion.getPrecioPorNoche()
-            .multiply(BigDecimal.valueOf(noches));
+                .multiply(BigDecimal.valueOf(noches));
         estancia.setTotalEstadia(totalEstadia);
 
         reserva.setEstancias(List.of(estancia));
 
         Reserva nuevaReserva = crear(reserva);
 
-        // Forzar la inicialización de colecciones necesarias antes de devolver la entidad
         nuevaReserva.getEstancias().forEach(e -> {
             e.getEntrada();
             if (e.getTipoHabitacion() != null) {
@@ -285,9 +312,9 @@ public class ReservaServiceImpl implements ReservaService {
             return BigDecimal.ZERO;
         }
         return reserva.getEstancias().stream()
-            .map(Estancia::getTotalEstadia)
-            .filter(Objects::nonNull)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .map(Estancia::getTotalEstadia)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private BigDecimal calcularTotalServicios(Reserva reserva) {
@@ -295,9 +322,9 @@ public class ReservaServiceImpl implements ReservaService {
             return BigDecimal.ZERO;
         }
         return reserva.getReservasServicios().stream()
-            .map(ReservaServicio::getTotalServicio)
-            .filter(Objects::nonNull)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .map(ReservaServicio::getTotalServicio)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private String generarCodigoReserva() {
@@ -310,7 +337,7 @@ public class ReservaServiceImpl implements ReservaService {
 
     private Reserva obtenerYValidar(String id) {
         return repository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("No se encontró la reserva con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la reserva con ID: " + id));
     }
 
     private void validarReserva(Reserva reserva) {
@@ -322,15 +349,12 @@ public class ReservaServiceImpl implements ReservaService {
         }
     }
 
-    private String normalizarUuid(String valor, String descripcionCampo) {
+    // 🔹 Nueva versión flexible (reemplaza normalizarUuid)
+    private String validarId(String valor, String descripcionCampo) {
         String limpio = valor == null ? null : valor.trim();
         if (limpio == null || limpio.isEmpty()) {
             throw new IllegalArgumentException("El identificador " + descripcionCampo + " es requerido");
         }
-        try {
-            return UUID.fromString(limpio).toString();
-        } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("El identificador " + descripcionCampo + " no es un UUID válido");
-        }
+        return limpio;
     }
 }

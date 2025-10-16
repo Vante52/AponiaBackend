@@ -8,7 +8,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -51,10 +51,11 @@ public class Estancia {
     @JsonIgnore
     private Reserva reserva;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tipo_habitacion_id", nullable = false)
-// Mantén visible si quieres que el front vea el tipo; si no, también @JsonIgnore
-    private HabitacionTipo tipoHabitacion;
+    // En Estancia.java
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "tipo_habitacion_id")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+private HabitacionTipo tipoHabitacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "habitacion_asignada")

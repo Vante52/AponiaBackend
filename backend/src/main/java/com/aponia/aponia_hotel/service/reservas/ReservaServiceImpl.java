@@ -91,7 +91,7 @@ public class ReservaServiceImpl implements ReservaService {
         resumen.setReserva(nuevaReserva);
         resumen.setTotalHabitaciones(calcularTotalHabitaciones(nuevaReserva));
         resumen.setTotalServicios(calcularTotalServicios(nuevaReserva));
-        resumen = resumenPagoRepository.save(resumen);
+        resumenPagoRepository.save(resumen);
         nuevaReserva.setResumenPago(resumen);
 
         return nuevaReserva;

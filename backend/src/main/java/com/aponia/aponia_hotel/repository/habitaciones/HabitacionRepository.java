@@ -25,7 +25,7 @@ public interface HabitacionRepository extends JpaRepository<Habitacion, String> 
               FROM Estancia e
               WHERE e.habitacionAsignada.id = h.id
                 AND e.reserva.estado = 'CONFIRMADA'
-                AND (e.salida <= :entrada AND e.salida >= :entrada)
+                AND (e.entrada < :salida AND e.salida > :entrada)
           )
         ORDER BY h.numero
     """)

@@ -48,6 +48,13 @@ public class ResumenPago {
     @Column(name = "ultima_actualizacion", nullable = false)
     private LocalDateTime ultimaActualizacion;
 
+    public void setReserva(Reserva reserva) {
+        this.reserva = reserva;
+        if (reserva != null) {
+            this.reservaId = reserva.getId();
+        }
+    }
+
     @PrePersist
     @PreUpdate
     public void validate() {

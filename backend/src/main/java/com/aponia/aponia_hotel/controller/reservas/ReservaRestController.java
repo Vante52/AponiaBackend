@@ -1,9 +1,13 @@
 package com.aponia.aponia_hotel.controller.reservas;
 
+import com.aponia.aponia_hotel.controller.reservas.dto.ReservaHabitacionRequest;
+import com.aponia.aponia_hotel.controller.reservas.dto.ReservaHabitacionResponse;
 import com.aponia.aponia_hotel.entities.reservas.Reserva;
 import com.aponia.aponia_hotel.service.reservas.ReservaService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -71,6 +75,23 @@ public class ReservaRestController {
     @Operation(summary = "Calcula el total de la reserva")
     public double total(@PathVariable String id) {
         return service.calcularTotalReserva(id);
+    }
+
+    @PostMapping("/cliente/{clienteId}/habitaciones")
+    @Operation(summary = "Permite a un cliente crear una reserva para un tipo de habitación")
+    public ResponseEntity<ReservaHabitacionResponse> reservarHabitacion(
+            @PathVariable String clienteId,
+            @RequestBody ReservaHabitacionRequest request) {
+        Reserva reserva = service.crearReservaCliente(
+                clienteId,
+                request.tipoHabitacionId(),
+                request.entrada(),
+                request.salida(),
+                request.numeroHuespedes(),
+                request.notas()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ReservaHabitacionResponse.fromReserva(reserva));
     }
 
     // ===== Mutaciones =====

@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,6 +33,7 @@ public class Reserva {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cliente_id", nullable = false)
+    @JsonIgnoreProperties({"passwordHash", "empleadoPerfil", "clientePerfil", "hibernateLazyInitializer", "handler"})
     private Usuario cliente;
 
     @CreationTimestamp
@@ -57,7 +59,7 @@ public class Reserva {
     @JsonIgnore
     private List<Pago> pagos;
 
-    @OneToOne(mappedBy = "reserva", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "reserva", fetch = FetchType.LAZY)
     @JsonIgnore
     private ResumenPago resumenPago;
 

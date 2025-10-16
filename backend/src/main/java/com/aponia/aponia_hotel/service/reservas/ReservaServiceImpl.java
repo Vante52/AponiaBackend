@@ -198,6 +198,8 @@ public class ReservaServiceImpl implements ReservaService {
 
     @Override
     public Reserva crearReservaCliente(String clienteId, String tipoHabitacionId, LocalDate entrada, LocalDate salida, Integer numeroHuespedes, String notas) {
+        Objects.requireNonNull(clienteId, "El cliente es requerido");
+        Objects.requireNonNull(tipoHabitacionId, "El tipo de habitación es requerido");
         Objects.requireNonNull(entrada, "La fecha de entrada es requerida");
         Objects.requireNonNull(salida, "La fecha de salida es requerida");
         Objects.requireNonNull(numeroHuespedes, "El número de huéspedes es requerido");
@@ -224,7 +226,7 @@ public class ReservaServiceImpl implements ReservaService {
             throw new IllegalArgumentException("El número de huéspedes excede la capacidad del tipo de habitación");
         }
 
-        if (!verificarDisponibilidad(tipoHabitacionIdNormalizado, entrada, salida, numeroHuespedes)) {
+        if (!verificarDisponibilidad(tipoHabitacionId, entrada, salida, numeroHuespedes)) {
             throw new IllegalStateException("No hay disponibilidad para las fechas seleccionadas");
         }
 
@@ -296,33 +298,6 @@ public class ReservaServiceImpl implements ReservaService {
             .map(ReservaServicio::getTotalServicio)
             .filter(Objects::nonNull)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    private ResumenPago prepararResumenPago(Reserva reserva) {
-        String reservaId = reserva.getId();
-        ResumenPago resumen = resumenPagoRepository.findById(reservaId)
-            .map(existing -> {
-                existing.markAsPersisted();
-                return existing;
-            })
-            .orElseGet(() -> {
-                ResumenPago base = reserva.getResumenPago();
-                if (base == null) {
-                    base = new ResumenPago();
-                }
-                base.markAsNew();
-                return base;
-            });
-
-        resumen.setReserva(reserva);
-        resumen.setTotalHabitaciones(calcularTotalHabitaciones(reserva));
-        resumen.setTotalServicios(calcularTotalServicios(reserva));
-
-        if (resumen.getTotalPagado() == null) {
-            resumen.setTotalPagado(BigDecimal.ZERO);
-        }
-
-        return resumen;
     }
 
     private String generarCodigoReserva() {

@@ -84,8 +84,10 @@ public class ReservaServiceImpl implements ReservaService {
         reserva.setEstado(EstadoReserva.PENDIENTE);
         Reserva nuevaReserva = repository.save(reserva);
 
-        // Inicializar el resumen de pagos
-        ResumenPago resumen = new ResumenPago();
+        // Inicializar o actualizar el resumen de pagos asociado
+        ResumenPago resumen = resumenPagoRepository.findById(nuevaReserva.getId())
+            .orElseGet(ResumenPago::new);
+        resumen.setReservaId(nuevaReserva.getId());
         resumen.setReserva(nuevaReserva);
         resumen.setTotalHabitaciones(calcularTotalHabitaciones(nuevaReserva));
         resumen.setTotalServicios(calcularTotalServicios(nuevaReserva));

@@ -86,15 +86,10 @@ public class ReservaServiceImpl implements ReservaService {
 
         reserva.setEstado(EstadoReserva.PENDIENTE);
 
-        // Inicializar o actualizar el resumen de pagos asociado
-        ResumenPago resumen = resumenPagoRepository.findById(nuevaReserva.getId())
-            .orElseGet(ResumenPago::new);
-        resumen.setReservaId(nuevaReserva.getId());
-        resumen.setReserva(nuevaReserva);
-        resumen.setTotalHabitaciones(calcularTotalHabitaciones(nuevaReserva));
-        resumen.setTotalServicios(calcularTotalServicios(nuevaReserva));
-        resumenPagoRepository.save(resumen);
-        nuevaReserva.setResumenPago(resumen);
+        ResumenPago resumen = prepararResumenPago(reserva);
+        reserva.setResumenPago(resumen);
+
+        Reserva nuevaReserva = repository.save(reserva);
 
         return nuevaReserva;
     }
@@ -216,10 +211,12 @@ public class ReservaServiceImpl implements ReservaService {
             throw new IllegalArgumentException("El número de huéspedes debe ser positivo");
         }
 
-        Usuario cliente = usuarioRepository.findById(clienteId)
+        String clienteIdNormalizado = normalizarUuid(clienteId, "del cliente");
+        Usuario cliente = usuarioRepository.findById(clienteIdNormalizado)
             .orElseThrow(() -> new IllegalArgumentException("No se encontró el cliente indicado"));
 
-        HabitacionTipo tipoHabitacion = habitacionTipoRepository.findById(tipoHabitacionId)
+        String tipoHabitacionIdNormalizado = normalizarUuid(tipoHabitacionId, "del tipo de habitación");
+        HabitacionTipo tipoHabitacion = habitacionTipoRepository.findById(tipoHabitacionIdNormalizado)
             .orElseThrow(() -> new IllegalArgumentException("No se encontró el tipo de habitación solicitado"));
 
         if (!Boolean.TRUE.equals(tipoHabitacion.getActiva())) {
@@ -322,6 +319,18 @@ public class ReservaServiceImpl implements ReservaService {
         }
         if (reserva.getCodigo() == null || reserva.getCodigo().trim().isEmpty()) {
             throw new IllegalArgumentException("La reserva debe tener un código");
+        }
+    }
+
+    private String normalizarUuid(String valor, String descripcionCampo) {
+        String limpio = valor == null ? null : valor.trim();
+        if (limpio == null || limpio.isEmpty()) {
+            throw new IllegalArgumentException("El identificador " + descripcionCampo + " es requerido");
+        }
+        try {
+            return UUID.fromString(limpio).toString();
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("El identificador " + descripcionCampo + " no es un UUID válido");
         }
     }
 }

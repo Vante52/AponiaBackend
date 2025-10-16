@@ -86,23 +86,15 @@ public class ReservaServiceImpl implements ReservaService {
 
         reserva.setEstado(EstadoReserva.PENDIENTE);
 
-        ResumenPago resumenExistente = resumenPagoRepository.findById(reserva.getId()).orElse(null);
-        ResumenPago resumen = resumenExistente != null
-            ? resumenExistente
-            : (reserva.getResumenPago() != null ? reserva.getResumenPago() : new ResumenPago());
-
-        if (resumenExistente == null) {
-            resumen.markAsNew();
-        } else {
-            resumen.markAsPersisted();
-        }
-
-        resumen.setReserva(reserva);
-        resumen.setTotalHabitaciones(calcularTotalHabitaciones(reserva));
-        resumen.setTotalServicios(calcularTotalServicios(reserva));
-        reserva.setResumenPago(resumen);
-
-        Reserva nuevaReserva = repository.save(reserva);
+        // Inicializar o actualizar el resumen de pagos asociado
+        ResumenPago resumen = resumenPagoRepository.findById(nuevaReserva.getId())
+            .orElseGet(ResumenPago::new);
+        resumen.setReservaId(nuevaReserva.getId());
+        resumen.setReserva(nuevaReserva);
+        resumen.setTotalHabitaciones(calcularTotalHabitaciones(nuevaReserva));
+        resumen.setTotalServicios(calcularTotalServicios(nuevaReserva));
+        resumenPagoRepository.save(resumen);
+        nuevaReserva.setResumenPago(resumen);
 
         return nuevaReserva;
     }
@@ -224,12 +216,10 @@ public class ReservaServiceImpl implements ReservaService {
             throw new IllegalArgumentException("El número de huéspedes debe ser positivo");
         }
 
-        String clienteIdNormalizado = clienteId.trim();
-        Usuario cliente = usuarioRepository.findById(clienteIdNormalizado)
+        Usuario cliente = usuarioRepository.findById(clienteId)
             .orElseThrow(() -> new IllegalArgumentException("No se encontró el cliente indicado"));
 
-        String tipoHabitacionIdNormalizado = tipoHabitacionId.trim();
-        HabitacionTipo tipoHabitacion = habitacionTipoRepository.findById(tipoHabitacionIdNormalizado)
+        HabitacionTipo tipoHabitacion = habitacionTipoRepository.findById(tipoHabitacionId)
             .orElseThrow(() -> new IllegalArgumentException("No se encontró el tipo de habitación solicitado"));
 
         if (!Boolean.TRUE.equals(tipoHabitacion.getActiva())) {
@@ -239,7 +229,7 @@ public class ReservaServiceImpl implements ReservaService {
             throw new IllegalArgumentException("El número de huéspedes excede la capacidad del tipo de habitación");
         }
 
-        if (!verificarDisponibilidad(tipoHabitacionIdNormalizado, entrada, salida, numeroHuespedes)) {
+        if (!verificarDisponibilidad(tipoHabitacionId, entrada, salida, numeroHuespedes)) {
             throw new IllegalStateException("No hay disponibilidad para las fechas seleccionadas");
         }
 

@@ -77,14 +77,12 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     public Reserva crear(Reserva reserva) {
         validarReserva(reserva);
-        if (reserva.getId() == null || reserva.getId().isBlank()) {
-            reserva.setId(UUID.randomUUID().toString());
-        }
         if (repository.existsByCodigo(reserva.getCodigo())) {
             throw new IllegalArgumentException("Ya existe una reserva con ese código");
         }
 
         reserva.setEstado(EstadoReserva.PENDIENTE);
+        Reserva nuevaReserva = repository.save(reserva);
 
         // Inicializar o actualizar el resumen de pagos asociado
         ResumenPago resumen = resumenPagoRepository.findById(nuevaReserva.getId())

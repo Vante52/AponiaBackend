@@ -86,15 +86,12 @@ public class ReservaServiceImpl implements ReservaService {
 
         // Inicializar o actualizar el resumen de pagos asociado
         ResumenPago resumen = resumenPagoRepository.findById(nuevaReserva.getId())
-            .orElseGet(() -> {
-                ResumenPago nuevoResumen = new ResumenPago();
-                nuevoResumen.markAsNew();
-                return nuevoResumen;
-            });
+            .orElseGet(ResumenPago::new);
+        resumen.setReservaId(nuevaReserva.getId());
         resumen.setReserva(nuevaReserva);
         resumen.setTotalHabitaciones(calcularTotalHabitaciones(nuevaReserva));
         resumen.setTotalServicios(calcularTotalServicios(nuevaReserva));
-        resumen = resumenPagoRepository.save(resumen);
+        resumenPagoRepository.save(resumen);
         nuevaReserva.setResumenPago(resumen);
 
         return nuevaReserva;

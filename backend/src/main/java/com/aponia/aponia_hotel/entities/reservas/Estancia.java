@@ -26,10 +26,10 @@ public class Estancia {
     private String id;
 
     @Column(name = "check_in", nullable = false)
-    private Boolean checkIn;
+    private Boolean checkIn = Boolean.FALSE;
 
     @Column(name = "check_out", nullable = false)
-    private Boolean checkOut;
+    private Boolean checkOut = Boolean.FALSE;
 
     @Column(name = "entrada", nullable = false)
     private LocalDate entrada;
@@ -83,6 +83,7 @@ public class Estancia {
             throw new IllegalStateException("El total de la estadía debe ser no negativo");
         }
         if (tipoHabitacion == null) {
+            throw new IllegalStateException("El tipo de habitación es requerido");
         }
     }
 }

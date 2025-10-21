@@ -10,6 +10,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.stream.Collectors;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -39,8 +40,11 @@ public class ReservaRestController {
 
     @GetMapping("/cliente/{clienteId}")
     @Operation(summary = "Lista reservas por cliente")
-    public List<Reserva> findByCliente(@PathVariable String clienteId) {
-        return service.listarPorCliente(clienteId);
+    public List<ReservaListResponse> findByCliente(@PathVariable String clienteId) {
+        return service.listarPorCliente(clienteId)
+                .stream()
+                .map(ReservaListResponse::fromEntity)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/estado/{estado}")

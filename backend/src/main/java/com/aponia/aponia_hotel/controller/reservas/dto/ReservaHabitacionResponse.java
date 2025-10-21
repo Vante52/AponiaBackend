@@ -9,45 +9,52 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record ReservaHabitacionResponse(
-        String reservaId,
-        String codigo,
-        LocalDateTime fechaCreacion,
-        Reserva.EstadoReserva estado,
-        LocalDate entrada,
-        LocalDate salida,
-        Integer numeroHuespedes,
-        String tipoHabitacionId,
-        String tipoHabitacionNombre,
-        BigDecimal precioPorNoche,
-        BigDecimal totalEstadia,
-        BigDecimal totalReserva
+    String id,
+    String codigo,
+    String estado,
+    LocalDateTime fechaCreacion,
+    BigDecimal totalEstadia,
+    HabitacionAsignadaDTO habitacionAsignada,
+    String mensaje
 ) {
-    public static ReservaHabitacionResponse fromReserva(Reserva reserva) {
-        if (reserva == null) {
-            throw new IllegalArgumentException("La reserva no puede ser nula");
-        }
-        List<Estancia> estancias = reserva.getEstancias();
-        if (estancias == null || estancias.isEmpty()) {
-            throw new IllegalArgumentException("La reserva no contiene estancias asociadas");
-        }
-        Estancia estancia = estancias.get(0);
-        BigDecimal totalReserva = reserva.getResumenPago() != null
-                ? reserva.getResumenPago().getTotalReserva()
-                : null;
+    /**
+     * DTO anidado con información de la habitación asignada
+     */
+    public record HabitacionAsignadaDTO(
+        String id,
+        Integer numero,
+        String tipoNombre
+    ) {}
 
+    /**
+     * Convierte una entidad Reserva en un DTO de respuesta
+     */
+    public static ReservaHabitacionResponse fromReserva(Reserva reserva) {
+        if (reserva.getEstancias() == null || reserva.getEstancias().isEmpty()) {
+            throw new IllegalStateException("La reserva debe tener al menos una estancia");
+        }
+        
+        Estancia estancia = reserva.getEstancias().get(0);
+        
+        if (estancia.getHabitacionAsignada() == null) {
+            throw new IllegalStateException("La estancia debe tener una habitación asignada");
+        }
+        
         return new ReservaHabitacionResponse(
-                reserva.getId(),
-                reserva.getCodigo(),
-                reserva.getFechaCreacion(),
-                reserva.getEstado(),
-                estancia.getEntrada(),
-                estancia.getSalida(),
-                estancia.getNumeroHuespedes(),
-                estancia.getTipoHabitacion() != null ? estancia.getTipoHabitacion().getId() : null,
-                estancia.getTipoHabitacion() != null ? estancia.getTipoHabitacion().getNombre() : null,
-                estancia.getPrecioPorNoche(),
-                estancia.getTotalEstadia(),
-                totalReserva
+            reserva.getId(),
+            reserva.getCodigo(),
+            reserva.getEstado().name(),
+            reserva.getFechaCreacion(),
+            estancia.getTotalEstadia(),
+            new HabitacionAsignadaDTO(
+                estancia.getHabitacionAsignada().getId(),
+                estancia.getHabitacionAsignada().getNumero(),
+                estancia.getTipoHabitacion().getNombre()
+            ),
+            String.format("Reserva confirmada exitosamente. Se le asignó la habitación #%d (%s)",
+                estancia.getHabitacionAsignada().getNumero(),
+                estancia.getTipoHabitacion().getNombre()
+            )
         );
     }
 }

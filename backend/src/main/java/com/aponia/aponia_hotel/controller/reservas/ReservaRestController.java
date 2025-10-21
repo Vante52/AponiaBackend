@@ -11,7 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -78,20 +80,32 @@ public class ReservaRestController {
     }
 
     @PostMapping("/cliente/{clienteId}/habitaciones")
-    @Operation(summary = "Permite a un cliente crear una reserva para un tipo de habitación")
-    public ResponseEntity<ReservaHabitacionResponse> reservarHabitacion(
+    @Operation(summary = "Crear reserva de habitación (cliente) - Confirmada automáticamente")
+    public ResponseEntity<?> reservarHabitacion(
             @PathVariable String clienteId,
             @RequestBody ReservaHabitacionRequest request) {
-        Reserva reserva = service.crearReservaCliente(
-                clienteId,
-                request.tipoHabitacionId(),
-                request.entrada(),
-                request.salida(),
-                request.numeroHuespedes(),
-                request.notas()
-        );
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ReservaHabitacionResponse.fromReserva(reserva));
+        
+        try {
+            Reserva reserva = service.crearReservaCliente(
+                    clienteId,
+                    request.tipoHabitacionId(),
+                    request.entrada(),
+                    request.salida(),
+                    request.numeroHuespedes(),
+                    request.notas()
+            );
+            
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ReservaHabitacionResponse.fromReserva(reserva));
+                    
+        } catch (IllegalStateException e) {
+            // Devolver mensaje claro al frontend
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                        "error", e.getMessage(),
+                        "timestamp", LocalDateTime.now()
+                    ));
+        }
     }
 
     // ===== Mutaciones =====
@@ -120,11 +134,11 @@ public class ReservaRestController {
         service.eliminar(id);
     }
 
-    @PostMapping("/{id}/confirmar")
+    /*@PostMapping("/{id}/confirmar")
     @Operation(summary = "Confirma una reserva pendiente")
     public void confirmar(@PathVariable String id) {
         service.confirmarReserva(id);
-    }
+    }*/
 
     @PostMapping("/{id}/cancelar")
     @Operation(summary = "Cancela una reserva (no completada)")

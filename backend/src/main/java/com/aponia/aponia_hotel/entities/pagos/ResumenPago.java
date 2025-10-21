@@ -20,11 +20,11 @@ import java.time.LocalDateTime;
 public class ResumenPago {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @Column(name = "reserva_id", length = 36)
+    private String reservaId;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reserva_id", unique = true, nullable = false)
+    @JoinColumn(name = "reserva_id", insertable = false, updatable = false)
     @JsonIgnore
     private Reserva reserva;
 
@@ -62,12 +62,16 @@ public class ResumenPago {
         if (totalPagado == null || totalPagado.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalStateException("El total pagado debe ser no negativo");
         }
-        if (reserva == null) {
-            throw new IllegalStateException("La reserva es requerida");
-        }
 
         // Calcular totales
         totalReserva = totalHabitaciones.add(totalServicios);
         saldoPendiente = totalReserva.subtract(totalPagado);
     }
+    public void setReserva(Reserva reserva) {
+        this.reserva = reserva;
+        if (reserva != null) {
+            this.reservaId = reserva.getId();  
+        }
+    }
+
 }

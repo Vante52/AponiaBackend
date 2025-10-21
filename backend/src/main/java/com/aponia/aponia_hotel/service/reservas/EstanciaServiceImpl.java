@@ -128,7 +128,7 @@ public class EstanciaServiceImpl implements EstanciaService {
             throw new IllegalArgumentException("Estancia no encontrada");
         }
         if (estancia.get().getReserva() != null &&
-            estancia.get().getReserva().getEstado() != Reserva.EstadoReserva.PENDIENTE) {
+            estancia.get().getReserva().getEstado() != Reserva.EstadoReserva.CONFIRMADA) {
             throw new IllegalStateException("No se pueden eliminar estancias de reservas confirmadas o completadas");
         }
         repository.deleteById(id);

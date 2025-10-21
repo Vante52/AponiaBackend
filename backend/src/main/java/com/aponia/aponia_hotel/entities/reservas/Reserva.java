@@ -1,6 +1,7 @@
 package com.aponia.aponia_hotel.entities.reservas;
 
 import com.aponia.aponia_hotel.entities.usuarios.Usuario;
+import com.aponia.aponia_hotel.entities.habitaciones.Habitacion;
 import com.aponia.aponia_hotel.entities.pagos.Pago;
 import com.aponia.aponia_hotel.entities.pagos.ResumenPago;
 
@@ -42,12 +43,11 @@ public class Reserva {
 
     @Column(name = "estado", nullable = false, length = 32)
     @Enumerated(EnumType.STRING)
-    private EstadoReserva estado = EstadoReserva.PENDIENTE;
+    private EstadoReserva estado = EstadoReserva.CONFIRMADA;
 
     @Column(name = "notas", columnDefinition = "TEXT")
     private String notas;
 
-    // En Reserva.java
     @OneToMany(mappedBy = "reserva", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties({ "reserva", "hibernateLazyInitializer", "handler" })
     private List<Estancia> estancias;
@@ -67,12 +67,12 @@ public class Reserva {
     public void setResumenPago(ResumenPago resumenPago) {
         this.resumenPago = resumenPago;
         if (resumenPago != null) {
+            resumenPago.setReservaId(this.id);
             resumenPago.setReserva(this);
         }
     }
 
     public enum EstadoReserva {
-        PENDIENTE,
         CONFIRMADA,
         CANCELADA,
         COMPLETADA

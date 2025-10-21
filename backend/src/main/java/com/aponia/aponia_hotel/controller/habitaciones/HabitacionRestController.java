@@ -23,10 +23,9 @@ public class HabitacionRestController {
         this.service = service;
     }
 
-    // ===============================
-    // ======= LECTURAS GET ==========
-    // ===============================
-
+    
+    //  LECTURAS GET 
+ 
     @GetMapping
     @Operation(summary = "Lista todas las habitaciones con su tipo")
     public ResponseEntity<List<HabitacionDTO>> listar() {
@@ -56,9 +55,9 @@ public class HabitacionRestController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ===============================
-    // ======= MUTACIONES ============
-    // ===============================
+
+    //  MUTACIONES 
+   
 
     @PostMapping
     @Operation(summary = "Crea una nueva habitación")

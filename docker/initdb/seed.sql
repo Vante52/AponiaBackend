@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict A9BTNjs7oLvRLRHhMT2f234TSva5Ci7OG6sSXPSXMeMzTxlgQm9MhTQWHyCCZbm
+\restrict Zpg7DNgg8493TJpnr6ut6GN35bf21rgIhhdmpaAeQZwXywfX8g6lLLMmD841GOz
 
 -- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
 -- Dumped by pg_dump version 16.10 (Debian 16.10-1.pgdg13+1)
@@ -19,7 +19,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: actualizar_resumen_despues_cambio(); Type: FUNCTION; Schema: public; Owner: -
+-- Name: actualizar_resumen_despues_cambio(); Type: FUNCTION; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE FUNCTION public.actualizar_resumen_despues_cambio() RETURNS trigger
@@ -46,8 +46,10 @@ END;
 $$;
 
 
+ALTER FUNCTION public.actualizar_resumen_despues_cambio() OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: actualizar_resumen_pagos(character); Type: FUNCTION; Schema: public; Owner: -
+-- Name: actualizar_resumen_pagos(character); Type: FUNCTION; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE FUNCTION public.actualizar_resumen_pagos(p_reserva_id character) RETURNS void
@@ -82,8 +84,10 @@ END;
 $$;
 
 
+ALTER FUNCTION public.actualizar_resumen_pagos(p_reserva_id character) OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: asignar_habitacion_al_confirmar(); Type: FUNCTION; Schema: public; Owner: -
+-- Name: asignar_habitacion_al_confirmar(); Type: FUNCTION; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE FUNCTION public.asignar_habitacion_al_confirmar() RETURNS trigger
@@ -116,8 +120,10 @@ END;
 $$;
 
 
+ALTER FUNCTION public.asignar_habitacion_al_confirmar() OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: asignar_habitacion_disponible(character, date, date); Type: FUNCTION; Schema: public; Owner: -
+-- Name: asignar_habitacion_disponible(character, date, date); Type: FUNCTION; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE FUNCTION public.asignar_habitacion_disponible(p_tipo_id character, p_check_in date, p_check_out date) RETURNS character
@@ -144,8 +150,10 @@ END;
 $$;
 
 
+ALTER FUNCTION public.asignar_habitacion_disponible(p_tipo_id character, p_check_in date, p_check_out date) OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: generar_habitaciones_automaticamente(); Type: FUNCTION; Schema: public; Owner: -
+-- Name: generar_habitaciones_automaticamente(); Type: FUNCTION; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE FUNCTION public.generar_habitaciones_automaticamente() RETURNS void
@@ -171,8 +179,10 @@ END;
 $$;
 
 
+ALTER FUNCTION public.generar_habitaciones_automaticamente() OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: inicializar_resumen_pagos(); Type: FUNCTION; Schema: public; Owner: -
+-- Name: inicializar_resumen_pagos(); Type: FUNCTION; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE FUNCTION public.inicializar_resumen_pagos() RETURNS void
@@ -188,38 +198,46 @@ END;
 $$;
 
 
+ALTER FUNCTION public.inicializar_resumen_pagos() OWNER TO "samiLeMeteAlFront";
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
 --
--- Name: clientes_perfil; Type: TABLE; Schema: public; Owner: -
+-- Name: clientes_perfil; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TABLE public.clientes_perfil (
     usuario_id character varying(36) NOT NULL,
     nombre_completo character varying(150) NOT NULL,
     telefono character varying(25),
-    fecha_registro timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    fecha_registro timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    version bigint
 );
 
 
+ALTER TABLE public.clientes_perfil OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: empleados_perfil; Type: TABLE; Schema: public; Owner: -
+-- Name: empleados_perfil; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TABLE public.empleados_perfil (
-    usuario_id character(36) NOT NULL,
+    usuario_id character varying(36) NOT NULL,
     nombre_completo character varying(150) NOT NULL,
     telefono character varying(25),
     cargo character varying(100) NOT NULL,
     salario numeric(12,2),
-    fecha_contratacion date DEFAULT CURRENT_DATE NOT NULL
+    fecha_contratacion date DEFAULT CURRENT_DATE NOT NULL,
+    version bigint
 );
 
 
+ALTER TABLE public.empleados_perfil OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: estancias; Type: TABLE; Schema: public; Owner: -
+-- Name: estancias; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TABLE public.estancias (
@@ -244,8 +262,10 @@ CREATE TABLE public.estancias (
 );
 
 
+ALTER TABLE public.estancias OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: habitaciones; Type: TABLE; Schema: public; Owner: -
+-- Name: habitaciones; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TABLE public.habitaciones (
@@ -257,8 +277,10 @@ CREATE TABLE public.habitaciones (
 );
 
 
+ALTER TABLE public.habitaciones OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: habitaciones_tipos; Type: TABLE; Schema: public; Owner: -
+-- Name: habitaciones_tipos; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TABLE public.habitaciones_tipos (
@@ -273,8 +295,10 @@ CREATE TABLE public.habitaciones_tipos (
 );
 
 
+ALTER TABLE public.habitaciones_tipos OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: imagenes; Type: TABLE; Schema: public; Owner: -
+-- Name: imagenes; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TABLE public.imagenes (
@@ -286,8 +310,10 @@ CREATE TABLE public.imagenes (
 );
 
 
+ALTER TABLE public.imagenes OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: pagos; Type: TABLE; Schema: public; Owner: -
+-- Name: pagos; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TABLE public.pagos (
@@ -300,14 +326,16 @@ CREATE TABLE public.pagos (
     estado character varying(20) DEFAULT 'pendiente'::character varying NOT NULL,
     concepto character varying(200),
     registrado_por_empleado_id character varying(36),
-    CONSTRAINT check_estado_pago_valido CHECK (((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'completado'::character varying, 'fallido'::character varying, 'reembolsado'::character varying])::text[]))),
+    CONSTRAINT check_estado_pago_valido CHECK (((estado)::text = ANY (ARRAY[('pendiente'::character varying)::text, ('completado'::character varying)::text, ('fallido'::character varying)::text, ('reembolsado'::character varying)::text]))),
     CONSTRAINT check_monto_positivo CHECK ((monto > (0)::numeric)),
-    CONSTRAINT check_tipo_valido CHECK (((tipo)::text = ANY ((ARRAY['anticipo'::character varying, 'pago_parcial'::character varying, 'pago_completo'::character varying, 'reembolso'::character varying])::text[])))
+    CONSTRAINT check_tipo_valido CHECK (((tipo)::text = ANY (ARRAY[('anticipo'::character varying)::text, ('pago_parcial'::character varying)::text, ('pago_completo'::character varying)::text, ('reembolso'::character varying)::text])))
 );
 
 
+ALTER TABLE public.pagos OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: reservas; Type: TABLE; Schema: public; Owner: -
+-- Name: reservas; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TABLE public.reservas (
@@ -318,12 +346,14 @@ CREATE TABLE public.reservas (
     estado character varying(32) DEFAULT 'pendiente'::character varying NOT NULL,
     notas text,
     creada_por_empleado_id character varying(36),
-    CONSTRAINT check_estado_valido CHECK (((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'confirmada'::character varying, 'cancelada'::character varying, 'completada'::character varying])::text[])))
+    CONSTRAINT check_estado_valido CHECK (((estado)::text = ANY (ARRAY[('pendiente'::character varying)::text, ('confirmada'::character varying)::text, ('cancelada'::character varying)::text, ('completada'::character varying)::text])))
 );
 
 
+ALTER TABLE public.reservas OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: reservas_servicios; Type: TABLE; Schema: public; Owner: -
+-- Name: reservas_servicios; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TABLE public.reservas_servicios (
@@ -342,8 +372,10 @@ CREATE TABLE public.reservas_servicios (
 );
 
 
+ALTER TABLE public.reservas_servicios OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: resumen_pagos; Type: TABLE; Schema: public; Owner: -
+-- Name: resumen_pagos; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TABLE public.resumen_pagos (
@@ -357,8 +389,10 @@ CREATE TABLE public.resumen_pagos (
 );
 
 
+ALTER TABLE public.resumen_pagos OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: servicio_disponibilidad; Type: TABLE; Schema: public; Owner: -
+-- Name: servicio_disponibilidad; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TABLE public.servicio_disponibilidad (
@@ -373,8 +407,10 @@ CREATE TABLE public.servicio_disponibilidad (
 );
 
 
+ALTER TABLE public.servicio_disponibilidad OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: servicios; Type: TABLE; Schema: public; Owner: -
+-- Name: servicios; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TABLE public.servicios (
@@ -389,8 +425,10 @@ CREATE TABLE public.servicios (
 );
 
 
+ALTER TABLE public.servicios OWNER TO "samiLeMeteAlFront";
+
 --
--- Name: usuarios; Type: TABLE; Schema: public; Owner: -
+-- Name: usuarios; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TABLE public.usuarios (
@@ -398,40 +436,53 @@ CREATE TABLE public.usuarios (
     email character varying(255) NOT NULL,
     password_hash character varying(255) NOT NULL,
     rol character varying(50) DEFAULT 'CLIENTE'::character varying NOT NULL,
-    CONSTRAINT check_rol_valido CHECK (((rol)::text = ANY ((ARRAY['ADMIN'::character varying, 'CLIENTE'::character varying, 'STAFF'::character varying, 'RECEPCIONISTA'::character varying])::text[])))
+    CONSTRAINT check_rol_valido CHECK (((rol)::text = ANY (ARRAY[('ADMIN'::character varying)::text, ('CLIENTE'::character varying)::text, ('STAFF'::character varying)::text, ('RECEPCIONISTA'::character varying)::text])))
 );
 
 
+ALTER TABLE public.usuarios OWNER TO "samiLeMeteAlFront";
+
 --
--- Data for Name: clientes_perfil; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: clientes_perfil; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
 --
 
-COPY public.clientes_perfil (usuario_id, nombre_completo, telefono, fecha_registro) FROM stdin;
-7325d128-3b86-40fb-865c-4584b25cb2f9	Aguirre	234567	2025-09-08 22:51:27.58619
-60fc894b-e09a-4265-b436-df53a490e2eb	samuel campos	321	2025-09-09 10:03:56.095483
-0bf298eb-bc81-4938-ad2c-b7f96a13a105	nuevo	3002112575	2025-09-09 10:57:58.800666
-cli_001	Carlos Pérez	3000000000	2025-10-07 10:41:37.742121
+COPY public.clientes_perfil (usuario_id, nombre_completo, telefono, fecha_registro, version) FROM stdin;
+7325d128-3b86-40fb-865c-4584b25cb2f9	Aguirre	234567	2025-09-08 22:51:27.58619	\N
+60fc894b-e09a-4265-b436-df53a490e2eb	samuel campos	321	2025-09-09 10:03:56.095483	\N
+0bf298eb-bc81-4938-ad2c-b7f96a13a105	nuevo	3002112575	2025-09-09 10:57:58.800666	\N
+cli_001	Carlos Pérez	3000000000	2025-10-07 10:41:37.742121	\N
+apitest-1759996794	Cliente Demo	555-0001	2025-10-09 02:59:54.811388	0
+apitest-1759996811	Cliente Demo	555-0001	2025-10-09 03:00:11.450914	0
+apitest-1759998158	Cliente Demo	555-0001	2025-10-09 03:22:39.211247	0
+apitest-1759998208	Cliente Demo	555-0001	2025-10-09 03:23:28.762635	0
+apitest-1759998576	Cliente Demo Actualizado	555-9999	2025-10-09 03:29:37.047301	1
+apitest-1759998594	Cliente Demo Actualizado	555-9999	2025-10-09 03:29:54.677898	1
 \.
 
 
 --
--- Data for Name: empleados_perfil; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: empleados_perfil; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
 --
 
-COPY public.empleados_perfil (usuario_id, nombre_completo, telefono, cargo, salario, fecha_contratacion) FROM stdin;
-emp_001                             	Mariana Rico	3001234567	Recepcionista	1800000.00	2022-05-10
-emp_002                             	Hania Campos	3019876543	Recepcionista	1750000.00	2023-01-15
-emp_003                             	Santiago Fortich	3204567890	Chef Ejecutivo	2800000.00	2021-08-20
-emp_004                             	Andrés Gómez	3107654321	Camarero	1500000.00	2022-11-01
-emp_005                             	Karen Manuela	3152345678	Camarera	1500000.00	2023-06-12
-emp_006                             	Paola Aguilera	3186543210	Sous Chef	2300000.00	2023-09-01
-emp_007                             	Sebastian Angarita	3205558899	Gerente General	4200000.00	2020-03-05
-emp_008                             	Camilo Triana	3114455667	Mantenimiento	1600000.00	2022-02-17
+COPY public.empleados_perfil (usuario_id, nombre_completo, telefono, cargo, salario, fecha_contratacion, version) FROM stdin;
+emp_002	Hania Campos	3019876543	Recepcionista	1750000.00	2023-01-15	\N
+emp_003	Santiago Fortich	3204567890	Chef Ejecutivo	2800000.00	2021-08-20	\N
+emp_004	Andrés Gómez	3107654321	Camarero	1500000.00	2022-11-01	\N
+emp_005	Karen Manuela	3152345678	Camarera	1500000.00	2023-06-12	\N
+emp_006	Paola Aguilera	3186543210	Sous Chef	2300000.00	2023-09-01	\N
+emp_007	Sebastian Angarita	3205558899	Gerente General	4200000.00	2020-03-05	\N
+emp_008	Camilo Triana	3114455667	Mantenimiento	1600000.00	2022-02-17	\N
+apitest-1759996794	Empleado Demo	555-0002	Recepcionista	1800.50	2020-01-01	0
+apitest-1759996811	Empleado Demo	555-0002	Recepcionista	1800.50	2020-01-01	0
+apitest-1759998158	Empleado Demo	555-0002	Recepcionista	1800.50	2020-01-01	0
+apitest-1759998208	Empleado Demo	555-0002	Recepcionista	1800.50	2020-01-01	0
+apitest-1759998576	Empleado Demo Actualizado	555-8888	Supervisor	2500.75	2019-05-20	1
+apitest-1759998594	Empleado Demo Actualizado	555-8888	Supervisor	2500.75	2019-05-20	1
 \.
 
 
 --
--- Data for Name: estancias; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: estancias; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
 --
 
 COPY public.estancias (id, reserva_id, tipo_habitacion_id, check_in, check_out, entrada, salida, numero_huespedes, precio_por_noche, total_estadia, habitacion_asignada, asignada_por_empleado_id, checkin_por_empleado_id, checkout_por_empleado_id) FROM stdin;
@@ -440,7 +491,7 @@ est_0001	res_0001	tipo_normal	f	f	2025-10-10	2025-10-13	2	250000.00	750000.00	ha
 
 
 --
--- Data for Name: habitaciones; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: habitaciones; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
 --
 
 COPY public.habitaciones (id, tipo_id, numero, activa) FROM stdin;
@@ -499,7 +550,7 @@ hab_101	tipo_normal	101	t
 
 
 --
--- Data for Name: habitaciones_tipos; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: habitaciones_tipos; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
 --
 
 COPY public.habitaciones_tipos (id, nombre, descripcion, aforo_maximo, precio_por_noche, activa) FROM stdin;
@@ -513,7 +564,7 @@ tipo_normal	Normallll	Habitación funcional y cómoda para estancias cortas. Inc
 
 
 --
--- Data for Name: imagenes; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: imagenes; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
 --
 
 COPY public.imagenes (id, servicio_id, tipo_habitacion_id, url) FROM stdin;
@@ -541,7 +592,7 @@ img_connecting_2	\N	tipo_connecting	https://img.lavdg.com/sc/7KboYBlOqMPLCeg3EDs
 
 
 --
--- Data for Name: pagos; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: pagos; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
 --
 
 COPY public.pagos (id, reserva_id, tipo, monto, fecha, metodo_pago, estado, concepto, registrado_por_empleado_id) FROM stdin;
@@ -550,7 +601,7 @@ pay_0001	res_0001	anticipo	500000.00	2025-10-07 10:41:37.742121	TARJETA	pendient
 
 
 --
--- Data for Name: reservas; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: reservas; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
 --
 
 COPY public.reservas (id, codigo, cliente_id, fecha_creacion, estado, notas, creada_por_empleado_id) FROM stdin;
@@ -559,7 +610,7 @@ res_0001	R-2025-0001	cli_001	2025-10-07 10:41:37.742121	pendiente	Reserva de 3 n
 
 
 --
--- Data for Name: reservas_servicios; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: reservas_servicios; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
 --
 
 COPY public.reservas_servicios (id, reserva_id, servicio_id, fecha, hora_inicio, numero_personas, precio_por_persona, total_servicio, contratado_por_empleado_id) FROM stdin;
@@ -569,7 +620,7 @@ rs_0002	res_0001	servicio_transporte	2025-10-10	07:00:00	2	100000.00	200000.00	e
 
 
 --
--- Data for Name: resumen_pagos; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: resumen_pagos; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
 --
 
 COPY public.resumen_pagos (reserva_id, total_habitaciones, total_servicios, total_reserva, total_pagado, saldo_pendiente, ultima_actualizacion) FROM stdin;
@@ -578,7 +629,7 @@ res_0001	1500000.00	500000.00	2000000.00	0.00	2000000.00	2025-10-07 10:41:37.742
 
 
 --
--- Data for Name: servicio_disponibilidad; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: servicio_disponibilidad; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
 --
 
 COPY public.servicio_disponibilidad (id, servicio_id, fecha, hora_inicio, hora_fin, capacidad_disponible) FROM stdin;
@@ -596,7 +647,7 @@ disp_wifi_2	servicio_wifi	2025-09-02	00:00:00	23:59:59	100
 
 
 --
--- Data for Name: servicios; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: servicios; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
 --
 
 COPY public.servicios (id, nombre, descripcion, lugar, precio_por_persona, duracion_minutos, capacidad_maxima) FROM stdin;
@@ -610,7 +661,7 @@ servicio_spa	Spa de autor modi	Rituales con esencias locales, 60-120 min. Masaje
 
 
 --
--- Data for Name: usuarios; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: usuarios; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
 --
 
 COPY public.usuarios (id, email, password_hash, rol) FROM stdin;
@@ -627,11 +678,17 @@ emp_006	camarera2@hotel.com	1234	STAFF
 emp_007	gerente@hotel.com	1234	ADMIN
 emp_008	mantenimiento1@hotel.com	1234	STAFF
 cli_001	cliente1@hotel.com	1234	CLIENTE
+apitest-1759996794	apitest-1759996794@example.com	$2a$10$5WGBd3myCE6Q/WSeWJ1V5u3vZul.ZjH9Wn6y7xPT4LvMTGIr50dIS	CLIENTE
+apitest-1759996811	apitest-1759996811@example.com	$2a$10$QxbFNNaAy8BjqYempL7YPeFGhsN6cEJNmEOGkuxaxIZrStXOxzqPy	CLIENTE
+apitest-1759998158	apitest-1759998158@example.com	$2a$10$PCyJQYmmTlOcl6gCksTLfuCraILo9jA.lPZY6ebtlLqIgsyn0n02u	CLIENTE
+apitest-1759998208	apitest-1759998208@example.com	$2a$10$XSGIUMj1t.P0LfDHjftMe..A6cw5QotbK.1m9EEoHKftKgXhDjFdS	CLIENTE
+apitest-1759998576	apitest-1759998576@example.com	$2a$10$rSj3lxAXrvXPV7XarfioGepDPUaHgTQ/U/bXy7NkaKkn1Qbm.xOEK	CLIENTE
+apitest-1759998594	apitest-1759998594@example.com	$2a$10$YGu7EIaqOgRB/fIz2ogiJOwBhjFWaXIJKnmwNNRFvLw9VnEKpWN/u	CLIENTE
 \.
 
 
 --
--- Name: clientes_perfil clientes_perfil_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: clientes_perfil clientes_perfil_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.clientes_perfil
@@ -639,7 +696,7 @@ ALTER TABLE ONLY public.clientes_perfil
 
 
 --
--- Name: empleados_perfil empleados_perfil_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: empleados_perfil empleados_perfil_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.empleados_perfil
@@ -647,7 +704,7 @@ ALTER TABLE ONLY public.empleados_perfil
 
 
 --
--- Name: estancias estancias_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: estancias estancias_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.estancias
@@ -655,7 +712,7 @@ ALTER TABLE ONLY public.estancias
 
 
 --
--- Name: habitaciones habitaciones_numero_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: habitaciones habitaciones_numero_key; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.habitaciones
@@ -663,7 +720,7 @@ ALTER TABLE ONLY public.habitaciones
 
 
 --
--- Name: habitaciones habitaciones_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: habitaciones habitaciones_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.habitaciones
@@ -671,7 +728,7 @@ ALTER TABLE ONLY public.habitaciones
 
 
 --
--- Name: habitaciones_tipos habitaciones_tipos_nombre_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: habitaciones_tipos habitaciones_tipos_nombre_key; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.habitaciones_tipos
@@ -679,7 +736,7 @@ ALTER TABLE ONLY public.habitaciones_tipos
 
 
 --
--- Name: habitaciones_tipos habitaciones_tipos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: habitaciones_tipos habitaciones_tipos_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.habitaciones_tipos
@@ -687,7 +744,7 @@ ALTER TABLE ONLY public.habitaciones_tipos
 
 
 --
--- Name: imagenes imagenes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: imagenes imagenes_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.imagenes
@@ -695,7 +752,7 @@ ALTER TABLE ONLY public.imagenes
 
 
 --
--- Name: pagos pagos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: pagos pagos_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.pagos
@@ -703,7 +760,7 @@ ALTER TABLE ONLY public.pagos
 
 
 --
--- Name: reservas reservas_codigo_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: reservas reservas_codigo_key; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.reservas
@@ -711,7 +768,7 @@ ALTER TABLE ONLY public.reservas
 
 
 --
--- Name: reservas reservas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: reservas reservas_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.reservas
@@ -719,7 +776,7 @@ ALTER TABLE ONLY public.reservas
 
 
 --
--- Name: reservas_servicios reservas_servicios_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: reservas_servicios reservas_servicios_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.reservas_servicios
@@ -727,7 +784,7 @@ ALTER TABLE ONLY public.reservas_servicios
 
 
 --
--- Name: resumen_pagos resumen_pagos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: resumen_pagos resumen_pagos_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.resumen_pagos
@@ -735,7 +792,7 @@ ALTER TABLE ONLY public.resumen_pagos
 
 
 --
--- Name: servicio_disponibilidad servicio_disponibilidad_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: servicio_disponibilidad servicio_disponibilidad_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.servicio_disponibilidad
@@ -743,7 +800,7 @@ ALTER TABLE ONLY public.servicio_disponibilidad
 
 
 --
--- Name: servicio_disponibilidad servicio_disponibilidad_servicio_id_fecha_hora_inicio_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: servicio_disponibilidad servicio_disponibilidad_servicio_id_fecha_hora_inicio_key; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.servicio_disponibilidad
@@ -751,7 +808,7 @@ ALTER TABLE ONLY public.servicio_disponibilidad
 
 
 --
--- Name: servicios servicios_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: servicios servicios_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.servicios
@@ -759,7 +816,7 @@ ALTER TABLE ONLY public.servicios
 
 
 --
--- Name: servicio_disponibilidad ukod1sk9uetqx1o4lywc5yvfqh8; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: servicio_disponibilidad ukod1sk9uetqx1o4lywc5yvfqh8; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.servicio_disponibilidad
@@ -767,7 +824,7 @@ ALTER TABLE ONLY public.servicio_disponibilidad
 
 
 --
--- Name: usuarios usuarios_email_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: usuarios usuarios_email_key; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.usuarios
@@ -775,7 +832,7 @@ ALTER TABLE ONLY public.usuarios
 
 
 --
--- Name: usuarios usuarios_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: usuarios usuarios_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.usuarios
@@ -783,182 +840,182 @@ ALTER TABLE ONLY public.usuarios
 
 
 --
--- Name: idx_estancias_asignada_por; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_estancias_asignada_por; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_estancias_asignada_por ON public.estancias USING btree (asignada_por_empleado_id);
 
 
 --
--- Name: idx_estancias_checkin_por; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_estancias_checkin_por; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_estancias_checkin_por ON public.estancias USING btree (checkin_por_empleado_id);
 
 
 --
--- Name: idx_estancias_checkout_por; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_estancias_checkout_por; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_estancias_checkout_por ON public.estancias USING btree (checkout_por_empleado_id);
 
 
 --
--- Name: idx_estancias_fechas; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_estancias_fechas; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_estancias_fechas ON public.estancias USING btree (check_in, check_out);
 
 
 --
--- Name: idx_estancias_tipo; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_estancias_tipo; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_estancias_tipo ON public.estancias USING btree (tipo_habitacion_id);
 
 
 --
--- Name: idx_habitaciones_numero; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_habitaciones_numero; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_habitaciones_numero ON public.habitaciones USING btree (numero);
 
 
 --
--- Name: idx_habitaciones_tipo; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_habitaciones_tipo; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_habitaciones_tipo ON public.habitaciones USING btree (tipo_id);
 
 
 --
--- Name: idx_pagos_estado; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_pagos_estado; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_pagos_estado ON public.pagos USING btree (estado);
 
 
 --
--- Name: idx_pagos_registrado_por; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_pagos_registrado_por; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_pagos_registrado_por ON public.pagos USING btree (registrado_por_empleado_id);
 
 
 --
--- Name: idx_pagos_reserva; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_pagos_reserva; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_pagos_reserva ON public.pagos USING btree (reserva_id);
 
 
 --
--- Name: idx_reservas_cliente; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_reservas_cliente; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_reservas_cliente ON public.reservas USING btree (cliente_id);
 
 
 --
--- Name: idx_reservas_codigo; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_reservas_codigo; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_reservas_codigo ON public.reservas USING btree (codigo);
 
 
 --
--- Name: idx_reservas_creada_por; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_reservas_creada_por; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_reservas_creada_por ON public.reservas USING btree (creada_por_empleado_id);
 
 
 --
--- Name: idx_reservas_estado; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_reservas_estado; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_reservas_estado ON public.reservas USING btree (estado);
 
 
 --
--- Name: idx_reservas_servicios_fecha; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_reservas_servicios_fecha; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_reservas_servicios_fecha ON public.reservas_servicios USING btree (fecha, hora_inicio);
 
 
 --
--- Name: idx_resumen_pagos_actualizacion; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_resumen_pagos_actualizacion; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_resumen_pagos_actualizacion ON public.resumen_pagos USING btree (ultima_actualizacion);
 
 
 --
--- Name: idx_resumen_pagos_saldo; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_resumen_pagos_saldo; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_resumen_pagos_saldo ON public.resumen_pagos USING btree (saldo_pendiente);
 
 
 --
--- Name: idx_rs_contratado_por; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_rs_contratado_por; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_rs_contratado_por ON public.reservas_servicios USING btree (contratado_por_empleado_id);
 
 
 --
--- Name: idx_servicio_disponibilidad_fecha; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_servicio_disponibilidad_fecha; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_servicio_disponibilidad_fecha ON public.servicio_disponibilidad USING btree (fecha, hora_inicio);
 
 
 --
--- Name: idx_usuarios_email; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_usuarios_email; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE INDEX idx_usuarios_email ON public.usuarios USING btree (email);
 
 
 --
--- Name: estancias trigger_actualizar_resumen_estancias; Type: TRIGGER; Schema: public; Owner: -
+-- Name: estancias trigger_actualizar_resumen_estancias; Type: TRIGGER; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TRIGGER trigger_actualizar_resumen_estancias AFTER INSERT OR DELETE OR UPDATE ON public.estancias FOR EACH ROW EXECUTE FUNCTION public.actualizar_resumen_despues_cambio();
 
 
 --
--- Name: pagos trigger_actualizar_resumen_pagos; Type: TRIGGER; Schema: public; Owner: -
+-- Name: pagos trigger_actualizar_resumen_pagos; Type: TRIGGER; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TRIGGER trigger_actualizar_resumen_pagos AFTER INSERT OR DELETE OR UPDATE ON public.pagos FOR EACH ROW EXECUTE FUNCTION public.actualizar_resumen_despues_cambio();
 
 
 --
--- Name: reservas trigger_actualizar_resumen_reservas; Type: TRIGGER; Schema: public; Owner: -
+-- Name: reservas trigger_actualizar_resumen_reservas; Type: TRIGGER; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TRIGGER trigger_actualizar_resumen_reservas AFTER INSERT OR DELETE OR UPDATE ON public.reservas FOR EACH ROW EXECUTE FUNCTION public.actualizar_resumen_despues_cambio();
 
 
 --
--- Name: reservas_servicios trigger_actualizar_resumen_reservas_servicios; Type: TRIGGER; Schema: public; Owner: -
+-- Name: reservas_servicios trigger_actualizar_resumen_reservas_servicios; Type: TRIGGER; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TRIGGER trigger_actualizar_resumen_reservas_servicios AFTER INSERT OR DELETE OR UPDATE ON public.reservas_servicios FOR EACH ROW EXECUTE FUNCTION public.actualizar_resumen_despues_cambio();
 
 
 --
--- Name: reservas trigger_asignar_habitacion; Type: TRIGGER; Schema: public; Owner: -
+-- Name: reservas trigger_asignar_habitacion; Type: TRIGGER; Schema: public; Owner: samiLeMeteAlFront
 --
 
 CREATE TRIGGER trigger_asignar_habitacion AFTER UPDATE ON public.reservas FOR EACH ROW EXECUTE FUNCTION public.asignar_habitacion_al_confirmar();
 
 
 --
--- Name: clientes_perfil clientes_perfil_usuario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clientes_perfil clientes_perfil_usuario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.clientes_perfil
@@ -966,7 +1023,7 @@ ALTER TABLE ONLY public.clientes_perfil
 
 
 --
--- Name: empleados_perfil empleados_perfil_usuario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: empleados_perfil empleados_perfil_usuario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.empleados_perfil
@@ -974,7 +1031,7 @@ ALTER TABLE ONLY public.empleados_perfil
 
 
 --
--- Name: estancias estancias_asignada_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: estancias estancias_asignada_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.estancias
@@ -982,7 +1039,7 @@ ALTER TABLE ONLY public.estancias
 
 
 --
--- Name: estancias estancias_checkin_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: estancias estancias_checkin_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.estancias
@@ -990,7 +1047,7 @@ ALTER TABLE ONLY public.estancias
 
 
 --
--- Name: estancias estancias_checkout_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: estancias estancias_checkout_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.estancias
@@ -998,7 +1055,7 @@ ALTER TABLE ONLY public.estancias
 
 
 --
--- Name: estancias estancias_habitacion_asignada_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: estancias estancias_habitacion_asignada_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.estancias
@@ -1006,7 +1063,7 @@ ALTER TABLE ONLY public.estancias
 
 
 --
--- Name: estancias estancias_reserva_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: estancias estancias_reserva_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.estancias
@@ -1014,7 +1071,7 @@ ALTER TABLE ONLY public.estancias
 
 
 --
--- Name: estancias estancias_tipo_habitacion_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: estancias estancias_tipo_habitacion_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.estancias
@@ -1022,7 +1079,7 @@ ALTER TABLE ONLY public.estancias
 
 
 --
--- Name: habitaciones habitaciones_tipo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: habitaciones habitaciones_tipo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.habitaciones
@@ -1030,7 +1087,7 @@ ALTER TABLE ONLY public.habitaciones
 
 
 --
--- Name: imagenes imagenes_servicio_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: imagenes imagenes_servicio_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.imagenes
@@ -1038,7 +1095,7 @@ ALTER TABLE ONLY public.imagenes
 
 
 --
--- Name: imagenes imagenes_tipo_habitacion_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: imagenes imagenes_tipo_habitacion_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.imagenes
@@ -1046,7 +1103,7 @@ ALTER TABLE ONLY public.imagenes
 
 
 --
--- Name: pagos pagos_registrado_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: pagos pagos_registrado_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.pagos
@@ -1054,7 +1111,7 @@ ALTER TABLE ONLY public.pagos
 
 
 --
--- Name: pagos pagos_reserva_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: pagos pagos_reserva_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.pagos
@@ -1062,7 +1119,7 @@ ALTER TABLE ONLY public.pagos
 
 
 --
--- Name: reservas reservas_cliente_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: reservas reservas_cliente_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.reservas
@@ -1070,7 +1127,7 @@ ALTER TABLE ONLY public.reservas
 
 
 --
--- Name: reservas reservas_creada_por_empleado_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: reservas reservas_creada_por_empleado_fk; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.reservas
@@ -1078,7 +1135,7 @@ ALTER TABLE ONLY public.reservas
 
 
 --
--- Name: reservas_servicios reservas_servicios_reserva_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: reservas_servicios reservas_servicios_reserva_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.reservas_servicios
@@ -1086,7 +1143,7 @@ ALTER TABLE ONLY public.reservas_servicios
 
 
 --
--- Name: reservas_servicios reservas_servicios_servicio_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: reservas_servicios reservas_servicios_servicio_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.reservas_servicios
@@ -1094,7 +1151,7 @@ ALTER TABLE ONLY public.reservas_servicios
 
 
 --
--- Name: resumen_pagos resumen_pagos_reserva_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: resumen_pagos resumen_pagos_reserva_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.resumen_pagos
@@ -1102,7 +1159,7 @@ ALTER TABLE ONLY public.resumen_pagos
 
 
 --
--- Name: reservas_servicios rs_contratado_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: reservas_servicios rs_contratado_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.reservas_servicios
@@ -1110,7 +1167,7 @@ ALTER TABLE ONLY public.reservas_servicios
 
 
 --
--- Name: servicio_disponibilidad servicio_disponibilidad_servicio_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: servicio_disponibilidad servicio_disponibilidad_servicio_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
 --
 
 ALTER TABLE ONLY public.servicio_disponibilidad
@@ -1121,5 +1178,5 @@ ALTER TABLE ONLY public.servicio_disponibilidad
 -- PostgreSQL database dump complete
 --
 
-\unrestrict A9BTNjs7oLvRLRHhMT2f234TSva5Ci7OG6sSXPSXMeMzTxlgQm9MhTQWHyCCZbm
+\unrestrict Zpg7DNgg8493TJpnr6ut6GN35bf21rgIhhdmpaAeQZwXywfX8g6lLLMmD841GOz
 

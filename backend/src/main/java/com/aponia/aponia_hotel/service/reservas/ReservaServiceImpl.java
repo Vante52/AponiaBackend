@@ -246,8 +246,7 @@ public class ReservaServiceImpl implements ReservaService {
             throw new IllegalArgumentException("La estancia debe incluir al menos una noche");
         }
         
-        BigDecimal totalEstadia = tipoHabitacion.getPrecioPorNoche()
-                .multiply(BigDecimal.valueOf(noches));
+        BigDecimal totalEstadia = tipoHabitacion.getPrecioPorNoche().multiply(BigDecimal.valueOf(noches));
 
         // Crear la reserva
         Reserva reserva = new Reserva();
@@ -397,4 +396,53 @@ public class ReservaServiceImpl implements ReservaService {
         
         return limpio;
     }
+
+    @Override
+@Transactional
+public Reserva actualizarReservaCliente(
+        String reservaId,
+        String tipoHabitacionId,
+        LocalDate entrada,
+        LocalDate salida,
+        int numeroHuespedes,
+        String notas) {
+    
+    // Obtener reserva existente
+    Reserva reserva = repository.findById(reservaId)
+        .orElseThrow(() -> new IllegalStateException("Reserva no encontrada"));
+    
+    // Validar que esté confirmada
+    if (reserva.getEstado() != Reserva.EstadoReserva.CONFIRMADA) {
+        throw new IllegalStateException("Solo se pueden modificar reservas confirmadas");
+    }
+    
+    // Verificar disponibilidad con las nuevas fechas
+    if (!verificarDisponibilidad(tipoHabitacionId, entrada, salida, numeroHuespedes)) {
+        throw new IllegalStateException("No hay disponibilidad para las fechas seleccionadas");
+    }
+    
+    // Obtener tipo de habitación
+    HabitacionTipo tipoHabitacion = habitacionTipoRepository.findById(tipoHabitacionId)
+        .orElseThrow(() -> new IllegalStateException("Tipo de habitación no encontrado"));
+    
+    // Actualizar la estancia (asumiendo que hay una sola estancia por reserva)
+    if (reserva.getEstancias() != null && !reserva.getEstancias().isEmpty()) {
+        Estancia estancia = reserva.getEstancias().get(0);
+        
+        estancia.setEntrada(entrada);
+        estancia.setSalida(salida);
+        estancia.setNumeroHuespedes(numeroHuespedes);
+        estancia.setTipoHabitacion(tipoHabitacion);
+        estancia.setPrecioPorNoche(tipoHabitacion.getPrecioPorNoche());        
+        // Recalcular total
+        long noches = ChronoUnit.DAYS.between(entrada, salida);
+        BigDecimal total = tipoHabitacion.getPrecioPorNoche().multiply(BigDecimal.valueOf(noches));
+        estancia.setTotalEstadia(total);
+    }
+    
+    // Actualizar notas
+    reserva.setNotas(notas);
+    
+    return repository.save(reserva);
+}
 }

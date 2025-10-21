@@ -157,4 +157,44 @@ public class ReservaRestController {
     public void completar(@PathVariable String id) {
         service.completarReserva(id);
     }
+
+    @PutMapping("/cliente/{clienteId}/reserva/{reservaId}")
+    @Operation(summary = "Actualizar reserva de cliente (solo si está CONFIRMADA)")
+    public ResponseEntity<?> actualizarReservaCliente(
+            @PathVariable String clienteId,
+            @PathVariable String reservaId,
+            @RequestBody ReservaHabitacionRequest request) {
+        
+        try {
+            // Verificar que la reserva existe y pertenece al cliente
+            Reserva reserva = service.obtener(reservaId)
+                .orElseThrow(() -> new IllegalStateException("Reserva no encontrada"));
+            
+            if (!reserva.getCliente().getId().equals(clienteId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "No tienes permiso para modificar esta reserva"));
+            }
+            
+            if (reserva.getEstado() != Reserva.EstadoReserva.CONFIRMADA) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Solo se pueden modificar reservas confirmadas"));
+            }
+            
+            // Actualizar la reserva
+            Reserva actualizada = service.actualizarReservaCliente(
+                reservaId,
+                request.tipoHabitacionId(),
+                request.entrada(),
+                request.salida(),
+                request.numeroHuespedes(),
+                request.notas()
+            );
+            
+            return ResponseEntity.ok(ReservaHabitacionResponse.fromReserva(actualizada));
+            
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
 }

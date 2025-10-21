@@ -2,6 +2,7 @@ package com.aponia.aponia_hotel.controller.reservas;
 
 import com.aponia.aponia_hotel.controller.reservas.dto.ReservaHabitacionRequest;
 import com.aponia.aponia_hotel.controller.reservas.dto.ReservaHabitacionResponse;
+import com.aponia.aponia_hotel.controller.reservas.dto.ReservaListResponse;
 import com.aponia.aponia_hotel.entities.reservas.Reserva;
 import com.aponia.aponia_hotel.service.reservas.ReservaService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,10 +29,13 @@ public class ReservaRestController {
     }
 
     // ===== Lecturas =====
-
     @GetMapping("/all")
-    @Operation(summary = "Lista todas las reservas")
-    public List<Reserva> findAll() { return service.listar(); }
+    @Operation(summary = "Lista todas las reservas (DTO seguro)")
+    public List<ReservaListResponse> findAll() {
+        return service.listar().stream()
+                .map(ReservaListResponse::fromEntity)
+                .toList();
+    }
 
     @GetMapping("/cliente/{clienteId}")
     @Operation(summary = "Lista reservas por cliente")
@@ -84,7 +88,7 @@ public class ReservaRestController {
     public ResponseEntity<?> reservarHabitacion(
             @PathVariable String clienteId,
             @RequestBody ReservaHabitacionRequest request) {
-        
+
         try {
             Reserva reserva = service.crearReservaCliente(
                     clienteId,
@@ -94,22 +98,21 @@ public class ReservaRestController {
                     request.numeroHuespedes(),
                     request.notas()
             );
-            
+
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ReservaHabitacionResponse.fromReserva(reserva));
-                    
+
         } catch (IllegalStateException e) {
             // Devolver mensaje claro al frontend
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of(
-                        "error", e.getMessage(),
-                        "timestamp", LocalDateTime.now()
+                            "error", e.getMessage(),
+                            "timestamp", LocalDateTime.now()
                     ));
         }
     }
 
     // ===== Mutaciones =====
-
     @PostMapping("/add")
     @Operation(summary = "Crea una nueva reserva (queda en estado PENDIENTE)")
     public Reserva add(@RequestBody Reserva reserva) {
@@ -139,7 +142,6 @@ public class ReservaRestController {
     public void confirmar(@PathVariable String id) {
         service.confirmarReserva(id);
     }*/
-
     @PostMapping("/{id}/cancelar")
     @Operation(summary = "Cancela una reserva (no completada)")
     public void cancelar(@PathVariable String id) {

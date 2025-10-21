@@ -49,7 +49,7 @@ public class PagoServiceImpl implements PagoService {
     public Pago crear(Pago pago) {
         validarPago(pago);
         if (pago.getEstado() == null) {
-            pago.setEstado(EstadoPago.PENDIENTE);
+            pago.setEstado(EstadoPago.COMPLETADO);
         }
         return repository.save(pago);
     }
@@ -101,7 +101,7 @@ public class PagoServiceImpl implements PagoService {
         reembolso.setReserva(pago.getReserva());
         reembolso.setTipo(TipoPago.REEMBOLSO);
         reembolso.setMonto(pago.getMonto());
-        reembolso.setEstado(EstadoPago.PENDIENTE);
+        reembolso.setEstado(EstadoPago.COMPLETADO);
         reembolso.setConcepto("Reembolso del pago " + pago.getId());
 
         pago.setEstado(EstadoPago.REEMBOLSADO);

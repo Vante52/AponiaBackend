@@ -60,7 +60,7 @@ public class ServicioServiceImpl implements ServicioService {
 //        resumen.setTotalServicios(totalServicios != null ? totalServicios : BigDecimal.ZERO);
 //        resumen.setTotalPagado(totalPagado != null ? totalPagado : BigDecimal.ZERO);
 //
-//        // @PrePersist/@PreUpdate recalcula totalReserva y saldoPendiente
+//        // @PrePersist/@PreUpdate recalcula totalReserva y SaldoPendiente
 //        repository.save(resumen);
 //    }
 }

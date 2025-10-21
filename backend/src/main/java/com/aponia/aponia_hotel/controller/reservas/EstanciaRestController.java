@@ -123,7 +123,7 @@ public class EstanciaRestController {
     }
 
     @DeleteMapping("/delete/{id}")
-    @Operation(summary = "Elimina una estancia por ID (solo si la reserva está pendiente)")
+    @Operation(summary = "Elimina una estancia por ID (solo si la reserva no está COMPLETADA)")
     public void delete(@PathVariable String id) {
         service.eliminar(id);
     }

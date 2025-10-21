@@ -60,17 +60,10 @@ public class Reserva {
     @JsonIgnore
     private List<Pago> pagos;
 
-    @OneToOne(mappedBy = "reserva", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @OneToOne(mappedBy = "reserva", fetch = FetchType.LAZY, orphanRemoval = true)
     @JsonIgnore
     private ResumenPago resumenPago;
 
-    public void setResumenPago(ResumenPago resumenPago) {
-        this.resumenPago = resumenPago;
-        if (resumenPago != null) {
-            resumenPago.setReservaId(this.id);
-            resumenPago.setReserva(this);
-        }
-    }
 
     public enum EstadoReserva {
         CONFIRMADA,

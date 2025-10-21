@@ -49,7 +49,7 @@ public interface PagoService {
     void eliminar(String id);
 
     /**
-     * Completa un pago pendiente
+     * Completa un pago COMPLETADO
      */
     void completarPago(String id);
 

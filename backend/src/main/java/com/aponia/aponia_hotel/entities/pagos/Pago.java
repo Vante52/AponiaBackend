@@ -53,7 +53,7 @@ public class Pago {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false, length = 20)
-    private EstadoPago estado = EstadoPago.PENDIENTE;
+    private EstadoPago estado = EstadoPago.COMPLETADO;
 
     @Column(name = "concepto", length = 200)
     private String concepto;
@@ -71,7 +71,6 @@ public class Pago {
     }
 
     public enum EstadoPago {
-        PENDIENTE,
         COMPLETADO,
         FALLIDO,
         REEMBOLSADO

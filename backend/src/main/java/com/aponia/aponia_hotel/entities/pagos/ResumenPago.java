@@ -67,11 +67,5 @@ public class ResumenPago {
         totalReserva = totalHabitaciones.add(totalServicios);
         saldoPendiente = totalReserva.subtract(totalPagado);
     }
-    public void setReserva(Reserva reserva) {
-        this.reserva = reserva;
-        if (reserva != null) {
-            this.reservaId = reserva.getId();  
-        }
-    }
 
 }

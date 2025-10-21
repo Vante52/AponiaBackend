@@ -62,7 +62,7 @@ public class PagoRestController {
     // ===== Mutaciones CRUD =====
 
     @PostMapping("/add")
-    @Operation(summary = "Crea un nuevo pago (PENDIENTE por defecto)")
+    @Operation(summary = "Crea un nuevo pago (COMPLETADO por defecto)")
     public Pago add(@RequestBody Pago pago, @RequestParam String reservaId) {
         if (pago.getId() == null || pago.getId().isBlank()) {
             pago.setId(UUID.randomUUID().toString());

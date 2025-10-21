@@ -50,7 +50,7 @@ public class ReservaRestController {
     }
 
     @GetMapping("/activas/{clienteId}")
-    @Operation(summary = "Lista reservas activas (pendientes/confirmadas) de un cliente")
+    @Operation(summary = "Lista reservas activas (confirmadas) de un cliente")
     public List<Reserva> activas(@PathVariable String clienteId) {
         return service.listarReservasActivas(clienteId);
     }
@@ -114,7 +114,7 @@ public class ReservaRestController {
 
     // ===== Mutaciones =====
     @PostMapping("/add")
-    @Operation(summary = "Crea una nueva reserva (queda en estado PENDIENTE)")
+    @Operation(summary = "Crea una nueva reserva (queda en estado CONFIRMADA)")
     public Reserva add(@RequestBody Reserva reserva) {
         if (reserva.getId() == null || reserva.getId().isBlank()) {
             reserva.setId(UUID.randomUUID().toString());
@@ -132,13 +132,13 @@ public class ReservaRestController {
     }
 
     @DeleteMapping("/delete/{id}")
-    @Operation(summary = "Elimina una reserva (solo si está PENDIENTE)")
+    @Operation(summary = "Elimina una reserva (solo si no está COMPLETADA)")
     public void delete(@PathVariable String id) {
         service.eliminar(id);
     }
 
     /*@PostMapping("/{id}/confirmar")
-    @Operation(summary = "Confirma una reserva pendiente")
+    @Operation(summary = "Confirma una reserva COMPLETADO")
     public void confirmar(@PathVariable String id) {
         service.confirmarReserva(id);
     }*/

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface EstanciaService {
+
     /**
      * Lista todas las estancias
      */
@@ -27,7 +28,8 @@ public interface EstanciaService {
     List<Estancia> listarCheckoutsDelDia(String tipoHabitacionId, LocalDate fecha);
 
     /**
-     * Verifica si hay habitaciones disponibles del tipo solicitado para las fechas dadas
+     * Verifica si hay habitaciones disponibles del tipo solicitado para las
+     * fechas dadas
      */
     boolean verificarDisponibilidad(String tipoHabitacionId, LocalDate checkIn, LocalDate checkOut, int numeroHuespedes);
 
@@ -65,4 +67,6 @@ public interface EstanciaService {
      * Verifica si hay conflictos de fechas para una habitación
      */
     List<Estancia> buscarConflictosFechas(String habitacionId, LocalDate checkIn, LocalDate checkOut);
+
+    Optional<Estancia> obtenerEstanciaActivaPorHabitacion(String habitacionId);
 }

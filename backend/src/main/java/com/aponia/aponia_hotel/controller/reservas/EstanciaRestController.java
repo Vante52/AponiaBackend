@@ -1,16 +1,33 @@
 package com.aponia.aponia_hotel.controller.reservas;
 
-import com.aponia.aponia_hotel.entities.reservas.Estancia;
-import com.aponia.aponia_hotel.entities.habitaciones.HabitacionTipo;
-import com.aponia.aponia_hotel.service.reservas.EstanciaService;
-import io.swagger.v3.oas.annotations.Operation;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.web.bind.annotation.*;
-
-
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.aponia.aponia_hotel.entities.habitaciones.HabitacionTipo;
+import com.aponia.aponia_hotel.entities.reservas.Estancia;
+import com.aponia.aponia_hotel.entities.reservas.Reserva;
+import com.aponia.aponia_hotel.entities.usuarios.ClientePerfil;
+import com.aponia.aponia_hotel.entities.usuarios.Usuario;
+import com.aponia.aponia_hotel.service.reservas.EstanciaService; // ← AGREGAR
+
+import io.swagger.v3.oas.annotations.Operation; // ← AGREGAR
 
 @RestController
 @RequestMapping("/api/estancias")
@@ -24,7 +41,6 @@ public class EstanciaRestController {
     }
 
     // ===== Lecturas =====
-
     @GetMapping("/all")
     @Operation(summary = "Lista todas las estancias")
     public List<Estancia> findAll() {
@@ -88,11 +104,10 @@ public class EstanciaRestController {
     }
 
     // ===== Mutaciones (estilo video: void / objeto simple) =====
-
     @PostMapping("/add")
     @Operation(summary = "Crea una nueva estancia")
     public Estancia add(@RequestBody Estancia estancia,
-                        @RequestParam(required = false) String tipoHabitacionId) {
+            @RequestParam(required = false) String tipoHabitacionId) {
         if (estancia.getId() == null || estancia.getId().isBlank()) {
             estancia.setId(UUID.randomUUID().toString());
         }
@@ -107,7 +122,7 @@ public class EstanciaRestController {
     @PutMapping("/update")
     @Operation(summary = "Actualiza una estancia existente")
     public Estancia update(@RequestBody Estancia estancia,
-                           @RequestParam(required = false) String tipoHabitacionId) {
+            @RequestParam(required = false) String tipoHabitacionId) {
         if (tipoHabitacionId != null && !tipoHabitacionId.isBlank()) {
             HabitacionTipo ref = new HabitacionTipo();
             ref.setId(tipoHabitacionId);
@@ -126,5 +141,60 @@ public class EstanciaRestController {
     @Operation(summary = "Elimina una estancia por ID (solo si la reserva no está COMPLETADA)")
     public void delete(@PathVariable String id) {
         service.eliminar(id);
+    }
+
+    // En EstanciaRestController.java - endpoint temporal para debugging
+    // En EstanciaRestController.java
+    @GetMapping("/habitacion/{habitacionId}/cliente-activo")
+    public ResponseEntity<?> obtenerClienteActivoPorHabitacion(@PathVariable String habitacionId) {
+        try {
+            System.out.println("🔍 Buscando cliente activo para habitación: " + habitacionId);
+
+            // Formatear ID si es necesario
+            String habitacionIdFormateado = habitacionId;
+            if (habitacionId.matches("\\d+")) {
+                habitacionIdFormateado = "hab_" + habitacionId;
+            }
+
+            // Buscar la estancia activa
+            Optional<Estancia> estanciaOpt = service.obtenerEstanciaActivaPorHabitacion(habitacionIdFormateado);
+
+            if (estanciaOpt.isPresent()) {
+                Estancia estancia = estanciaOpt.get();
+                Reserva reserva = estancia.getReserva();
+                Usuario cliente = reserva.getCliente();
+                ClientePerfil clientePerfil = cliente.getClientePerfil(); // ← Obtener el perfil
+
+                // Verificar que el perfil existe
+                if (clientePerfil == null) {
+                    System.out.println("❌ Cliente sin perfil: " + cliente.getId());
+                    return ResponseEntity.notFound().build();
+                }
+
+                // Crear respuesta SIMPLE sin relaciones complejas
+                Map<String, Object> response = new HashMap<>();
+                response.put("reservaId", reserva.getId());
+                response.put("fechaInicio", estancia.getEntrada());
+                response.put("fechaFin", estancia.getSalida());
+                response.put("estado", reserva.getEstado());
+                response.put("cliente", Map.of(
+                        "id", cliente.getId(),
+                        "nombreCompleto", clientePerfil.getNombreCompleto(), // ← Del perfil
+                        "email", cliente.getEmail(),
+                        "telefono", clientePerfil.getTelefono() // ← Del perfil
+                ));
+
+                System.out.println("✅ Cliente encontrado: " + clientePerfil.getNombreCompleto());
+                return ResponseEntity.ok(response);
+            } else {
+                System.out.println("❌ No se encontró cliente activo");
+                return ResponseEntity.notFound().build();
+            }
+
+        } catch (Exception e) {
+            System.err.println("💥 ERROR: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
     }
 }

@@ -1,5 +1,12 @@
 package com.aponia.aponia_hotel.service.reservas;
 
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.aponia.aponia_hotel.entities.habitaciones.Habitacion;
 import com.aponia.aponia_hotel.entities.habitaciones.HabitacionTipo;
 import com.aponia.aponia_hotel.entities.reservas.Estancia;
@@ -7,12 +14,6 @@ import com.aponia.aponia_hotel.entities.reservas.Reserva;
 import com.aponia.aponia_hotel.repository.habitaciones.HabitacionRepository;
 import com.aponia.aponia_hotel.repository.habitaciones.HabitacionTipoRepository;
 import com.aponia.aponia_hotel.repository.reservas.EstanciaRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
 
 @Service
 @Transactional
@@ -127,8 +128,8 @@ public class EstanciaServiceImpl implements EstanciaService {
         if (estancia.isEmpty()) {
             throw new IllegalArgumentException("Estancia no encontrada");
         }
-        if (estancia.get().getReserva() != null &&
-            estancia.get().getReserva().getEstado() != Reserva.EstadoReserva.CONFIRMADA) {
+        if (estancia.get().getReserva() != null
+                && estancia.get().getReserva().getEstado() != Reserva.EstadoReserva.CONFIRMADA) {
             throw new IllegalStateException("No se pueden eliminar estancias de reservas confirmadas o completadas");
         }
         repository.deleteById(id);
@@ -160,18 +161,38 @@ public class EstanciaServiceImpl implements EstanciaService {
 
     private void validarDisponibilidadHabitacion(Estancia estancia) {
         List<Estancia> conflictos = buscarConflictosFechas(
-            estancia.getHabitacionAsignada().getId(),
-            estancia.getEntrada(),
-            estancia.getSalida()
+                estancia.getHabitacionAsignada().getId(),
+                estancia.getEntrada(),
+                estancia.getSalida()
         );
 
-        if (!conflictos.isEmpty() &&
-            (conflictos.size() > 1 || !conflictos.get(0).getId().equals(estancia.getId()))) {
+        if (!conflictos.isEmpty()
+                && (conflictos.size() > 1 || !conflictos.get(0).getId().equals(estancia.getId()))) {
             throw new IllegalStateException("La habitación no está disponible para las fechas seleccionadas");
         }
 
         if (!estancia.getHabitacionAsignada().getTipo().equals(estancia.getTipoHabitacion())) {
             throw new IllegalArgumentException("La habitación asignada no corresponde al tipo solicitado");
+        }
+    }
+
+    @Override
+    public Optional<Estancia> obtenerEstanciaActivaPorHabitacion(String habitacionId) {
+        try {
+            // ✅ CONVERTIR el número al formato correcto
+            String habitacionIdFormateado = habitacionId;
+            if (habitacionId.matches("\\d+")) { // Si es solo números
+                habitacionIdFormateado = "hab_" + habitacionId;
+            }
+
+            System.out.println("🔍 Service: Buscando estancia activa para: " + habitacionIdFormateado);
+            Optional<Estancia> resultado = repository.findByHabitacionIdAndReservaActiva(habitacionIdFormateado);
+            System.out.println("✅ Service: Resultado - " + (resultado.isPresent() ? "ENCONTRADO" : "NO ENCONTRADO"));
+            return resultado;
+        } catch (Exception e) {
+            System.err.println("❌ Service Error: " + e.getMessage());
+            e.printStackTrace();
+            return Optional.empty();
         }
     }
 }

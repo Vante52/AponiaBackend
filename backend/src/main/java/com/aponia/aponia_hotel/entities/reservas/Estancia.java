@@ -1,17 +1,26 @@
 package com.aponia.aponia_hotel.entities.reservas;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
 import com.aponia.aponia_hotel.entities.habitaciones.Habitacion;
 import com.aponia.aponia_hotel.entities.habitaciones.HabitacionTipo;
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "estancias")
@@ -19,6 +28,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // ← AGREGAR esta línea
 public class Estancia {
 
     @Id
@@ -52,10 +62,10 @@ public class Estancia {
     private Reserva reserva;
 
     // En Estancia.java
-@ManyToOne(fetch = FetchType.LAZY)
-@JoinColumn(name = "tipo_habitacion_id")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-private HabitacionTipo tipoHabitacion;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo_habitacion_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private HabitacionTipo tipoHabitacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "habitacion_asignada")

@@ -1,12 +1,13 @@
 package com.aponia.aponia_hotel.service.habitaciones;
 
-import com.aponia.aponia_hotel.entities.habitaciones.Habitacion;
-import com.aponia.aponia_hotel.repository.habitaciones.HabitacionRepository;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import com.aponia.aponia_hotel.entities.habitaciones.Habitacion;
+import com.aponia.aponia_hotel.repository.habitaciones.HabitacionRepository;
 
 @Service
 @Transactional
@@ -48,6 +49,12 @@ public class HabitacionServiceImpl implements HabitacionService {
     @Transactional(readOnly = true)
     public Optional<Habitacion> obtener(String id) {
         return repository.findById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Habitacion> obtenerPorNumeroHabitacion(Integer numero) {
+        return repository.findByNumero(numero);
     }
 
     @Override

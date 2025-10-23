@@ -1,10 +1,12 @@
 package com.aponia.aponia_hotel.service.habitaciones;
 
-import com.aponia.aponia_hotel.entities.habitaciones.Habitacion;
 import java.util.List;
 import java.util.Optional;
 
+import com.aponia.aponia_hotel.entities.habitaciones.Habitacion;
+
 public interface HabitacionService {
+
     /**
      * Lista todas las habitaciones
      */
@@ -30,6 +32,8 @@ public interface HabitacionService {
      */
     Optional<Habitacion> obtener(String id);
 
+    Optional<Habitacion> obtenerPorNumeroHabitacion(Integer numero);
+
     /**
      * Actualiza una habitación existente
      */
@@ -43,7 +47,6 @@ public interface HabitacionService {
     // Métodos deprecados o no utilizados
     // @deprecated Usar listarPorTipo() en su lugar
     // List<Habitacion> findByTipoId(String tipoId);
-
     // @deprecated No implementado actualmente
     // List<Habitacion> findDisponiblesByTipoAndFechas(String tipoId, String checkIn, String checkOut);
 }

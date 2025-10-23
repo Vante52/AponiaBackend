@@ -2,6 +2,7 @@ package com.aponia.aponia_hotel.repository.habitaciones;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,9 +13,13 @@ import com.aponia.aponia_hotel.entities.habitaciones.Habitacion;
 
 @Repository
 public interface HabitacionRepository extends JpaRepository<Habitacion, String> {
+
     List<Habitacion> findByTipoIdAndActivaIsTrue(String tipoId);
+
     List<Habitacion> findByActivaIsTrue();
+
     boolean existsByNumero(Integer numero);
+
     @Query("""
         SELECT h
         FROM Habitacion h
@@ -34,4 +39,7 @@ public interface HabitacionRepository extends JpaRepository<Habitacion, String> 
             @Param("entrada") LocalDate entrada,
             @Param("salida") LocalDate salida
     );
+
+    Optional<Habitacion> findByNumero(Integer numero);
+
 }

@@ -190,7 +190,7 @@ public class EstanciaServiceImpl implements EstanciaService {
             System.out.println("✅ Service: Resultado - " + (resultado.isPresent() ? "ENCONTRADO" : "NO ENCONTRADO"));
             return resultado;
         } catch (Exception e) {
-            System.err.println("❌ Service Error: " + e.getMessage());
+            System.err.println("❌ Service Error errorrr: " + e.getMessage());
             e.printStackTrace();
             return Optional.empty();
         }

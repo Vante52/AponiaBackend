@@ -1,5 +1,18 @@
 package com.aponia.aponia_hotel.service.reservas;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.aponia.aponia_hotel.entities.habitaciones.Habitacion;
 import com.aponia.aponia_hotel.entities.habitaciones.HabitacionTipo;
 import com.aponia.aponia_hotel.entities.pagos.ResumenPago;
@@ -10,18 +23,10 @@ import com.aponia.aponia_hotel.entities.reservas.ReservaServicio;
 import com.aponia.aponia_hotel.entities.usuarios.Usuario;
 import com.aponia.aponia_hotel.repository.habitaciones.HabitacionRepository;
 import com.aponia.aponia_hotel.repository.habitaciones.HabitacionTipoRepository;
+import com.aponia.aponia_hotel.repository.pagos.ResumenPagoRepository;
 import com.aponia.aponia_hotel.repository.reservas.EstanciaRepository;
 import com.aponia.aponia_hotel.repository.reservas.ReservaRepository;
-import com.aponia.aponia_hotel.repository.pagos.ResumenPagoRepository;
 import com.aponia.aponia_hotel.repository.usuarios.UsuarioRepository;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
 
 @Service
 @Transactional
@@ -78,15 +83,15 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     public Reserva crear(Reserva reserva) {
         validarReserva(reserva);
-        
+
         if (reserva.getId() == null || reserva.getId().isBlank()) {
             reserva.setId(UUID.randomUUID().toString());
         }
-        
+
         if (repository.existsByCodigo(reserva.getCodigo())) {
             throw new IllegalArgumentException("Ya existe una reserva con ese código");
         }
-    
+
         reserva.setEstado(EstadoReserva.CONFIRMADA);
         return repository.save(reserva);
     }
@@ -106,13 +111,13 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     public Reserva actualizar(Reserva reserva) {
         validarReserva(reserva);
-        
+
         Reserva reservaExistente = repository.findById(reserva.getId())
                 .orElseThrow(() -> new IllegalArgumentException(
-                    "No se encontró la reserva con ID: " + reserva.getId()));
+                "No se encontró la reserva con ID: " + reserva.getId()));
 
-        if (!reservaExistente.getCodigo().equals(reserva.getCodigo()) &&
-                repository.existsByCodigo(reserva.getCodigo())) {
+        if (!reservaExistente.getCodigo().equals(reserva.getCodigo())
+                && repository.existsByCodigo(reserva.getCodigo())) {
             throw new IllegalArgumentException("Ya existe una reserva con ese código");
         }
 
@@ -122,18 +127,18 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     public void eliminar(String id) {
         Optional<Reserva> reserva = repository.findById(id);
-        
+
         if (reserva.isPresent() && reserva.get().getEstado() == EstadoReserva.COMPLETADA) {
             throw new IllegalStateException("No se pueden eliminar reservas completadas");
         }
-        
+
         repository.deleteById(id);
     }
-    
+
     @Override
     public void cancelarReserva(String id) {
         Reserva reserva = obtenerYValidar(id);
-        
+
         if (reserva.getEstado() == EstadoReserva.COMPLETADA) {
             throw new IllegalStateException("No se puede cancelar una reserva completada");
         }
@@ -145,7 +150,7 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     public void completarReserva(String id) {
         Reserva reserva = obtenerYValidar(id);
-        
+
         if (reserva.getEstado() != EstadoReserva.CONFIRMADA) {
             throw new IllegalStateException("Solo se pueden completar reservas confirmadas");
         }
@@ -157,20 +162,20 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     @Transactional(readOnly = true)
     public boolean verificarDisponibilidad(
-            String tipoHabitacionId, 
-            LocalDate entrada, 
+            String tipoHabitacionId,
+            LocalDate entrada,
             LocalDate salida,
             int numeroHuespedes) {
-        
+
         Optional<HabitacionTipo> tipo = habitacionTipoRepository.findById(tipoHabitacionId);
-        
-        if (tipo.isEmpty() || !tipo.get().getActiva() || 
-            tipo.get().getAforoMaximo() < numeroHuespedes) {
+
+        if (tipo.isEmpty() || !tipo.get().getActiva()
+                || tipo.get().getAforoMaximo() < numeroHuespedes) {
             return false;
         }
 
         List<Habitacion> disponibles = habitacionRepository.findHabitacionesDisponibles(
-            tipoHabitacionId, entrada, salida
+                tipoHabitacionId, entrada, salida
         );
 
         return !disponibles.isEmpty();
@@ -178,12 +183,12 @@ public class ReservaServiceImpl implements ReservaService {
 
     @Override
     public Reserva crearReservaCliente(
-        String clienteId, 
-        String tipoHabitacionId, 
-        LocalDate entrada, 
-        LocalDate salida,
-        Integer numeroHuespedes, 
-        String notas) {
+            String clienteId,
+            String tipoHabitacionId,
+            LocalDate entrada,
+            LocalDate salida,
+            Integer numeroHuespedes,
+            String notas) {
 
         // Validar parámetros requeridos
         Objects.requireNonNull(clienteId, "El cliente es requerido");
@@ -221,8 +226,8 @@ public class ReservaServiceImpl implements ReservaService {
 
         if (tipoHabitacion.getAforoMaximo() < numeroHuespedes) {
             throw new IllegalArgumentException(
-                String.format("El número de huéspedes (%d) excede la capacidad máxima (%d)", 
-                    numeroHuespedes, tipoHabitacion.getAforoMaximo())
+                    String.format("El número de huéspedes (%d) excede la capacidad máxima (%d)",
+                            numeroHuespedes, tipoHabitacion.getAforoMaximo())
             );
         }
 
@@ -233,8 +238,8 @@ public class ReservaServiceImpl implements ReservaService {
 
         if (disponibles.isEmpty()) {
             throw new IllegalStateException(
-                String.format("No hay habitaciones disponibles del tipo '%s' para las fechas seleccionadas", 
-                    tipoHabitacion.getNombre())
+                    String.format("No hay habitaciones disponibles del tipo '%s' para las fechas seleccionadas",
+                            tipoHabitacion.getNombre())
             );
         }
 
@@ -245,7 +250,7 @@ public class ReservaServiceImpl implements ReservaService {
         if (noches <= 0) {
             throw new IllegalArgumentException("La estancia debe incluir al menos una noche");
         }
-        
+
         BigDecimal totalEstadia = tipoHabitacion.getPrecioPorNoche().multiply(BigDecimal.valueOf(noches));
 
         // Crear la reserva
@@ -253,7 +258,7 @@ public class ReservaServiceImpl implements ReservaService {
         reserva.setId(UUID.randomUUID().toString());
         reserva.setCodigo(generarCodigoReserva());
         reserva.setCliente(cliente);
-        reserva.setEstado(EstadoReserva.CONFIRMADA); 
+        reserva.setEstado(EstadoReserva.CONFIRMADA);
         reserva.setNotas(notas);
 
         // Crear la estancia asociada
@@ -261,7 +266,7 @@ public class ReservaServiceImpl implements ReservaService {
         estancia.setId(UUID.randomUUID().toString());
         estancia.setReserva(reserva);
         estancia.setTipoHabitacion(tipoHabitacion);
-        estancia.setHabitacionAsignada(habitacionAsignada);  
+        estancia.setHabitacionAsignada(habitacionAsignada);
         estancia.setEntrada(entrada);
         estancia.setSalida(salida);
         estancia.setNumeroHuespedes(numeroHuespedes);
@@ -283,12 +288,13 @@ public class ReservaServiceImpl implements ReservaService {
 
     /**
      * Crea o actualiza el resumen de pagos de forma segura, manejando posibles
-     * conflictos de clave duplicada que puedan ocurrir por triggers de base de datos.
+     * conflictos de clave duplicada que puedan ocurrir por triggers de base de
+     * datos.
      */
     private void crearResumenPagoSeguro(String reservaId, BigDecimal totalEstadia) {
         try {
             Optional<ResumenPago> existente = resumenPagoRepository.findByReservaId(reservaId);
-            
+
             ResumenPago resumen;
             if (existente.isPresent()) {
                 // Actualizar el resumen existente
@@ -298,15 +304,15 @@ public class ReservaServiceImpl implements ReservaService {
                 resumen = new ResumenPago();
                 resumen.setReservaId(reservaId);
             }
-            
+
             resumen.setTotalHabitaciones(totalEstadia);
             resumen.setTotalServicios(BigDecimal.ZERO);
             resumen.setTotalReserva(totalEstadia);
             resumen.setTotalPagado(BigDecimal.ZERO);
             resumen.setSaldoPendiente(totalEstadia);
-            
+
             resumenPagoRepository.saveAndFlush(resumen);
-            
+
         } catch (DataIntegrityViolationException e) {
             // Manejar violación de clave duplicada intentando actualizar el registro existente
             try {
@@ -329,22 +335,21 @@ public class ReservaServiceImpl implements ReservaService {
     public double calcularTotalReserva(String id) {
         Reserva reserva = obtenerYValidar(id);
         ResumenPago resumen = reserva.getResumenPago();
-        
+
         // Si no existe resumen, calcularlo desde las estancias
         if (resumen == null) {
             return calcularTotalHabitaciones(reserva).doubleValue();
         }
-        
+
         return resumen.getTotalReserva().doubleValue();
     }
 
     // Métodos auxiliares privados
-
     private BigDecimal calcularTotalHabitaciones(Reserva reserva) {
         if (reserva.getEstancias() == null) {
             return BigDecimal.ZERO;
         }
-        
+
         return reserva.getEstancias().stream()
                 .map(Estancia::getTotalEstadia)
                 .filter(Objects::nonNull)
@@ -355,7 +360,7 @@ public class ReservaServiceImpl implements ReservaService {
         if (reserva.getReservasServicios() == null) {
             return BigDecimal.ZERO;
         }
-        
+
         return reserva.getReservasServicios().stream()
                 .map(ReservaServicio::getTotalServicio)
                 .filter(Objects::nonNull)
@@ -373,14 +378,14 @@ public class ReservaServiceImpl implements ReservaService {
     private Reserva obtenerYValidar(String id) {
         return repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(
-                    "No se encontró la reserva con ID: " + id));
+                "No se encontró la reserva con ID: " + id));
     }
 
     private void validarReserva(Reserva reserva) {
         if (reserva.getCliente() == null) {
             throw new IllegalArgumentException("La reserva debe tener un cliente asignado");
         }
-        
+
         if (reserva.getCodigo() == null || reserva.getCodigo().trim().isEmpty()) {
             throw new IllegalArgumentException("La reserva debe tener un código");
         }
@@ -388,61 +393,61 @@ public class ReservaServiceImpl implements ReservaService {
 
     private String validarId(String valor, String descripcionCampo) {
         String limpio = valor == null ? null : valor.trim();
-        
+
         if (limpio == null || limpio.isEmpty()) {
             throw new IllegalArgumentException(
-                "El identificador " + descripcionCampo + " es requerido");
+                    "El identificador " + descripcionCampo + " es requerido");
         }
-        
+
         return limpio;
     }
 
     @Override
-@Transactional
-public Reserva actualizarReservaCliente(
-        String reservaId,
-        String tipoHabitacionId,
-        LocalDate entrada,
-        LocalDate salida,
-        int numeroHuespedes,
-        String notas) {
-    
-    // Obtener reserva existente
-    Reserva reserva = repository.findById(reservaId)
-        .orElseThrow(() -> new IllegalStateException("Reserva no encontrada"));
-    
-    // Validar que esté confirmada
-    if (reserva.getEstado() != Reserva.EstadoReserva.CONFIRMADA) {
-        throw new IllegalStateException("Solo se pueden modificar reservas confirmadas");
+    @Transactional
+    public Reserva actualizarReservaCliente(
+            String reservaId,
+            String tipoHabitacionId,
+            LocalDate entrada,
+            LocalDate salida,
+            int numeroHuespedes,
+            String notas) {
+
+        // Obtener reserva existente
+        Reserva reserva = repository.findById(reservaId)
+                .orElseThrow(() -> new IllegalStateException("Reserva no encontrada"));
+
+        // Validar que esté confirmada
+        if (reserva.getEstado() != Reserva.EstadoReserva.CONFIRMADA) {
+            throw new IllegalStateException("Solo se pueden modificar reservas confirmadas");
+        }
+
+        // Verificar disponibilidad con las nuevas fechas
+        if (!verificarDisponibilidad(tipoHabitacionId, entrada, salida, numeroHuespedes)) {
+            throw new IllegalStateException("No hay disponibilidad para las fechas seleccionadas");
+        }
+
+        // Obtener tipo de habitación
+        HabitacionTipo tipoHabitacion = habitacionTipoRepository.findById(tipoHabitacionId)
+                .orElseThrow(() -> new IllegalStateException("Tipo de habitación no encontrado"));
+
+        // Actualizar la estancia (asumiendo que hay una sola estancia por reserva)
+        if (reserva.getEstancias() != null && !reserva.getEstancias().isEmpty()) {
+            Estancia estancia = reserva.getEstancias().get(0);
+
+            estancia.setEntrada(entrada);
+            estancia.setSalida(salida);
+            estancia.setNumeroHuespedes(numeroHuespedes);
+            estancia.setTipoHabitacion(tipoHabitacion);
+            estancia.setPrecioPorNoche(tipoHabitacion.getPrecioPorNoche());
+            // Recalcular total
+            long noches = ChronoUnit.DAYS.between(entrada, salida);
+            BigDecimal total = tipoHabitacion.getPrecioPorNoche().multiply(BigDecimal.valueOf(noches));
+            estancia.setTotalEstadia(total);
+        }
+
+        // Actualizar notas
+        reserva.setNotas(notas);
+
+        return repository.save(reserva);
     }
-    
-    // Verificar disponibilidad con las nuevas fechas
-    if (!verificarDisponibilidad(tipoHabitacionId, entrada, salida, numeroHuespedes)) {
-        throw new IllegalStateException("No hay disponibilidad para las fechas seleccionadas");
-    }
-    
-    // Obtener tipo de habitación
-    HabitacionTipo tipoHabitacion = habitacionTipoRepository.findById(tipoHabitacionId)
-        .orElseThrow(() -> new IllegalStateException("Tipo de habitación no encontrado"));
-    
-    // Actualizar la estancia (asumiendo que hay una sola estancia por reserva)
-    if (reserva.getEstancias() != null && !reserva.getEstancias().isEmpty()) {
-        Estancia estancia = reserva.getEstancias().get(0);
-        
-        estancia.setEntrada(entrada);
-        estancia.setSalida(salida);
-        estancia.setNumeroHuespedes(numeroHuespedes);
-        estancia.setTipoHabitacion(tipoHabitacion);
-        estancia.setPrecioPorNoche(tipoHabitacion.getPrecioPorNoche());        
-        // Recalcular total
-        long noches = ChronoUnit.DAYS.between(entrada, salida);
-        BigDecimal total = tipoHabitacion.getPrecioPorNoche().multiply(BigDecimal.valueOf(noches));
-        estancia.setTotalEstadia(total);
-    }
-    
-    // Actualizar notas
-    reserva.setNotas(notas);
-    
-    return repository.save(reserva);
-}
 }

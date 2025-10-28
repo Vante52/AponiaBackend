@@ -1,16 +1,27 @@
 package com.aponia.aponia_hotel.controller.reservas;
 
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.aponia.aponia_hotel.entities.reservas.Reserva;
 import com.aponia.aponia_hotel.entities.reservas.ReservaServicio;
 import com.aponia.aponia_hotel.entities.servicios.Servicio;
 import com.aponia.aponia_hotel.service.reservas.ReservaServicioService;
-import io.swagger.v3.oas.annotations.Operation;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+import io.swagger.v3.oas.annotations.Operation;
 
 @RestController
 @RequestMapping("/api/reservas-servicios")
@@ -24,7 +35,6 @@ public class ReservaServicioRestController {
     }
 
     // ===== Lecturas =====
-
     @GetMapping("/all")
     @Operation(summary = "Lista todas las reservas de servicios")
     public List<ReservaServicio> findAll() {
@@ -52,18 +62,21 @@ public class ReservaServicioRestController {
     }
 
     // ===== Mutaciones =====
-
     @PostMapping("/add")
     @Operation(summary = "Crea una reserva de servicio")
     public void add(@RequestBody ReservaServicio rs,
-                    @RequestParam String reservaId,
-                    @RequestParam String servicioId) {
+            @RequestParam String reservaId,
+            @RequestParam String servicioId) {
         if (rs.getId() == null || rs.getId().isBlank()) {
             rs.setId(UUID.randomUUID().toString());
         }
         // referencias livianas
-        Reserva r = new Reserva(); r.setId(reservaId); rs.setReserva(r);
-        Servicio s = new Servicio(); s.setId(servicioId); rs.setServicio(s);
+        Reserva r = new Reserva();
+        r.setId(reservaId);
+        rs.setReserva(r);
+        Servicio s = new Servicio();
+        s.setId(servicioId);
+        rs.setServicio(s);
 
         service.crear(rs);
     }
@@ -71,13 +84,17 @@ public class ReservaServicioRestController {
     @PutMapping("/update")
     @Operation(summary = "Actualiza una reserva de servicio")
     public void update(@RequestBody ReservaServicio rs,
-                       @RequestParam(required = false) String reservaId,
-                       @RequestParam(required = false) String servicioId) {
+            @RequestParam(required = false) String reservaId,
+            @RequestParam(required = false) String servicioId) {
         if (reservaId != null && !reservaId.isBlank()) {
-            Reserva r = new Reserva(); r.setId(reservaId); rs.setReserva(r);
+            Reserva r = new Reserva();
+            r.setId(reservaId);
+            rs.setReserva(r);
         }
         if (servicioId != null && !servicioId.isBlank()) {
-            Servicio s = new Servicio(); s.setId(servicioId); rs.setServicio(s);
+            Servicio s = new Servicio();
+            s.setId(servicioId);
+            rs.setServicio(s);
         }
         service.actualizar(rs);
     }
@@ -86,5 +103,13 @@ public class ReservaServicioRestController {
     @Operation(summary = "Elimina una reserva de servicio por ID")
     public void delete(@PathVariable String id) {
         service.eliminar(id);
+    }
+
+    @GetMapping("/{id}/servicio-id")
+    @Operation(summary = "Obtiene el ID del servicio para una reserva de servicio")
+    public String getServicioId(@PathVariable String id) {
+        return service.obtener(id)
+                .map(reservaServicio -> reservaServicio.getServicio().getId())
+                .orElse(null);
     }
 }

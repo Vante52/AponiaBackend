@@ -4,9 +4,12 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.repository.query.Param;
+
 import com.aponia.aponia_hotel.entities.reservas.ReservaServicio;
 
 public interface ReservaServicioService {
+
     /**
      * Lista todas las reservas de servicios
      */
@@ -21,6 +24,7 @@ public interface ReservaServicioService {
      * Lista las reservas de servicios por servicio y fecha
      */
     List<ReservaServicio> findByServicioIdAndFecha(String servicioId, LocalDate fecha);
+
     /**
      * Crea una nueva reserva de servicio
      */
@@ -40,5 +44,7 @@ public interface ReservaServicioService {
      * Elimina una reserva de servicio por su ID
      */
     void eliminar(String id);
+
+    List<ReservaServicio> findByReservaIdWithServicio(@Param("reservaId") String reservaId);
 
 }

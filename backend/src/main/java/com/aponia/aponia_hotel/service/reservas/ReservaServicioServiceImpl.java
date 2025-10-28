@@ -58,4 +58,10 @@ public class ReservaServicioServiceImpl implements ReservaServicioService {
     public void eliminar(String id) {
         repository.deleteById(id);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReservaServicio> findByReservaIdWithServicio(String reservaId) {
+        return repository.findByReservaIdWithServicio(reservaId); // ← Usar el nuevo método
+    }
 }

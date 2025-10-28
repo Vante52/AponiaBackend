@@ -3,6 +3,7 @@ package com.aponia.aponia_hotel.service.reservas;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -177,7 +178,7 @@ public class EstanciaServiceImpl implements EstanciaService {
     }
 
     @Override
-    public Optional<Estancia> obtenerEstanciaActivaPorHabitacion(String habitacionId) {
+    public List<Estancia> obtenerEstanciasActivasPorHabitacion(String habitacionId) {
         try {
             // ✅ CONVERTIR el número al formato correcto
             String habitacionIdFormateado = habitacionId;
@@ -185,14 +186,14 @@ public class EstanciaServiceImpl implements EstanciaService {
                 habitacionIdFormateado = "hab_" + habitacionId;
             }
 
-            System.out.println("🔍 Service: Buscando estancia activa para: " + habitacionIdFormateado);
-            Optional<Estancia> resultado = repository.findByHabitacionIdAndReservaActiva(habitacionIdFormateado);
-            System.out.println("✅ Service: Resultado - " + (resultado.isPresent() ? "ENCONTRADO" : "NO ENCONTRADO"));
+            System.out.println("🔍 Service: Buscando ESTANCIAS activas para: " + habitacionIdFormateado);
+            List<Estancia> resultado = repository.findByHabitacionIdAndReservaActiva(habitacionIdFormateado);
+            System.out.println("✅ Service: " + resultado.size() + " estancias encontradas");
             return resultado;
         } catch (Exception e) {
-            System.err.println("❌ Service Error errorrr: " + e.getMessage());
+            System.err.println("❌ Service Error: " + e.getMessage());
             e.printStackTrace();
-            return Optional.empty();
+            return new ArrayList<>(); // Devuelve lista vacía
         }
     }
 }

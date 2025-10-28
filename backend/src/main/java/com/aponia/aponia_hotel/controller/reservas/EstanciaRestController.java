@@ -3,6 +3,7 @@ package com.aponia.aponia_hotel.controller.reservas;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -145,10 +146,10 @@ public class EstanciaRestController {
 
     // En EstanciaRestController.java - endpoint temporal para debugging
     // En EstanciaRestController.java
-    @GetMapping("/habitacion/{habitacionId}/cliente-activo")
-    public ResponseEntity<?> obtenerClienteActivoPorHabitacion(@PathVariable String habitacionId) {
+    @GetMapping("/habitacion/{habitacionId}/reservas-activas")
+    public ResponseEntity<?> obtenerReservasActivasPorHabitacion(@PathVariable String habitacionId) {
         try {
-            System.out.println("🔍 Buscando cliente activo para habitación: " + habitacionId);
+            System.out.println("🔍 Buscando reservas activas para habitación: " + habitacionId);
 
             // Formatear ID si es necesario
             String habitacionIdFormateado = habitacionId;
@@ -156,38 +157,38 @@ public class EstanciaRestController {
                 habitacionIdFormateado = "hab_" + habitacionId;
             }
 
-            // Buscar la estancia activa
-            Optional<Estancia> estanciaOpt = service.obtenerEstanciaActivaPorHabitacion(habitacionIdFormateado);
+            // CAMBIO 1: Cambiar de Optional<Estancia> a List<Estancia>
+            List<Estancia> estancias = service.obtenerEstanciasActivasPorHabitacion(habitacionIdFormateado);
 
-            if (estanciaOpt.isPresent()) {
-                Estancia estancia = estanciaOpt.get();
-                Reserva reserva = estancia.getReserva();
-                Usuario cliente = reserva.getCliente();
-                ClientePerfil clientePerfil = cliente.getClientePerfil(); // ← Obtener el perfil
+            if (!estancias.isEmpty()) {
+                // CAMBIO 2: Crear lista en lugar de un solo objeto
+                List<Map<String, Object>> responseList = new ArrayList<>();
 
-                // Verificar que el perfil existe
-                if (clientePerfil == null) {
-                    System.out.println("❌ Cliente sin perfil: " + cliente.getId());
-                    return ResponseEntity.notFound().build();
+                for (Estancia estancia : estancias) {
+                    Reserva reserva = estancia.getReserva();
+                    Usuario cliente = reserva.getCliente();
+                    ClientePerfil clientePerfil = cliente.getClientePerfil();
+
+                    if (clientePerfil != null) {
+                        Map<String, Object> response = new HashMap<>();
+                        response.put("reservaId", reserva.getId());
+                        response.put("fechaInicio", estancia.getEntrada());
+                        response.put("fechaFin", estancia.getSalida());
+                        response.put("estado", reserva.getEstado());
+                        response.put("cliente", Map.of(
+                                "id", cliente.getId(),
+                                "nombreCompleto", clientePerfil.getNombreCompleto(),
+                                "email", cliente.getEmail(),
+                                "telefono", clientePerfil.getTelefono()
+                        ));
+                        responseList.add(response);
+                    }
                 }
 
-                // Crear respuesta SIMPLE sin relaciones complejas
-                Map<String, Object> response = new HashMap<>();
-                response.put("reservaId", reserva.getId());
-                response.put("fechaInicio", estancia.getEntrada());
-                response.put("fechaFin", estancia.getSalida());
-                response.put("estado", reserva.getEstado());
-                response.put("cliente", Map.of(
-                        "id", cliente.getId(),
-                        "nombreCompleto", clientePerfil.getNombreCompleto(), // ← Del perfil
-                        "email", cliente.getEmail(),
-                        "telefono", clientePerfil.getTelefono() // ← Del perfil
-                ));
-
-                System.out.println("✅ Cliente encontrado: " + clientePerfil.getNombreCompleto());
-                return ResponseEntity.ok(response);
+                System.out.println("✅ " + responseList.size() + " reservas encontradas");
+                return ResponseEntity.ok(responseList); // ← Devuelve LISTA
             } else {
-                System.out.println("❌ No se encontró cliente activo");
+                System.out.println("❌ No se encontraron reservas activas");
                 return ResponseEntity.notFound().build();
             }
 

@@ -1,9 +1,10 @@
 package com.aponia.aponia_hotel.service.reservas;
 
-import com.aponia.aponia_hotel.entities.reservas.Estancia;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+
+import com.aponia.aponia_hotel.entities.reservas.Estancia;
 
 public interface EstanciaService {
 
@@ -68,5 +69,5 @@ public interface EstanciaService {
      */
     List<Estancia> buscarConflictosFechas(String habitacionId, LocalDate checkIn, LocalDate checkOut);
 
-    Optional<Estancia> obtenerEstanciaActivaPorHabitacion(String habitacionId);
+    List<Estancia> obtenerEstanciasActivasPorHabitacion(String habitacionId);
 }

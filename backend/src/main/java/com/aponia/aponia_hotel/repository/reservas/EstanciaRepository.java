@@ -2,7 +2,6 @@ package com.aponia.aponia_hotel.repository.reservas;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -27,5 +26,5 @@ public interface EstanciaRepository extends JpaRepository<Estancia, String> {
     List<Estancia> findCheckoutsByTipoHabitacionAndFecha(@Param("tipoHabitacionId") String tipoHabitacionId, @Param("fecha") LocalDate fecha);
 
     @Query("SELECT e FROM Estancia e WHERE e.habitacionAsignada.id = :habitacionId AND e.reserva.estado = 'CONFIRMADA'")
-    Optional<Estancia> findByHabitacionIdAndReservaActiva(@Param("habitacionId") String habitacionId);
+    List<Estancia> findByHabitacionIdAndReservaActiva(@Param("habitacionId") String habitacionId);
 }

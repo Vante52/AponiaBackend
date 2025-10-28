@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.aponia.aponia_hotel.entities.reservas.Estancia;
 import com.aponia.aponia_hotel.entities.reservas.Reserva;
 import com.aponia.aponia_hotel.entities.reservas.Reserva.EstadoReserva;
 
@@ -39,4 +40,16 @@ public interface ReservaRepository extends JpaRepository<Reserva, String> {
     @Query("SELECT r FROM Reserva r JOIN r.estancias e "
             + "WHERE r.estado = :estado AND e.checkIn = :fecha")
     List<Reserva> findReservasDelDia(@Param("estado") EstadoReserva estado, @Param("fecha") LocalDateTime fecha);
+
+    // En EstanciaRepository.java
+    @Query("SELECT e FROM Estancia e "
+            + "JOIN FETCH e.reserva r "
+            + "JOIN FETCH r.cliente c "
+            + "LEFT JOIN FETCH c.clientePerfil "
+            + "WHERE e.habitacionAsignada.id = :habitacionId "
+            + "AND r.estado = 'CONFIRMADA' "
+            + "AND e.entrada <= CURRENT_DATE "
+            + "AND e.salida >= CURRENT_DATE "
+            + "ORDER BY e.entrada DESC")
+    List<Estancia> findEstanciasActivasPorHabitacion(@Param("habitacionId") String habitacionId);
 }

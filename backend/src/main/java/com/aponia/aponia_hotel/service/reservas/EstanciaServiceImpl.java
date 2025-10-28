@@ -1,9 +1,9 @@
 package com.aponia.aponia_hotel.service.reservas;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.ArrayList;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -195,5 +195,25 @@ public class EstanciaServiceImpl implements EstanciaService {
             e.printStackTrace();
             return new ArrayList<>(); // Devuelve lista vacía
         }
+    }
+
+    @Transactional
+    public void realizarCheckout(String estanciaId) {
+        Estancia estancia = obtener(estanciaId)
+                .orElseThrow(() -> new IllegalStateException("Estancia no encontrada"));
+
+        // Verificar que la reserva esté confirmada
+        if (estancia.getReserva().getEstado() != Reserva.EstadoReserva.CONFIRMADA) {
+            throw new IllegalStateException("Solo se puede hacer check-out de reservas confirmadas");
+        }
+
+        // Marcar check-out como true
+        estancia.setCheckOut(true);
+
+        // Cambiar estado de la reserva a COMPLETADA
+        estancia.getReserva().setEstado(Reserva.EstadoReserva.COMPLETADA);
+
+        // Guardar cambios
+        repository.save(estancia);
     }
 }

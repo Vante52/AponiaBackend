@@ -70,4 +70,6 @@ public interface EstanciaService {
     List<Estancia> buscarConflictosFechas(String habitacionId, LocalDate checkIn, LocalDate checkOut);
 
     List<Estancia> obtenerEstanciasActivasPorHabitacion(String habitacionId);
+
+    void realizarCheckout(String estanciaId);
 }

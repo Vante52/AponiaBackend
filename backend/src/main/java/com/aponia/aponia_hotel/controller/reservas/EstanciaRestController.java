@@ -1,11 +1,10 @@
 package com.aponia.aponia_hotel.controller.reservas;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -26,7 +25,7 @@ import com.aponia.aponia_hotel.entities.reservas.Estancia;
 import com.aponia.aponia_hotel.entities.reservas.Reserva;
 import com.aponia.aponia_hotel.entities.usuarios.ClientePerfil;
 import com.aponia.aponia_hotel.entities.usuarios.Usuario;
-import com.aponia.aponia_hotel.service.reservas.EstanciaService; // ← AGREGAR
+import com.aponia.aponia_hotel.service.reservas.EstanciaService;
 
 import io.swagger.v3.oas.annotations.Operation; // ← AGREGAR
 
@@ -196,6 +195,23 @@ public class EstanciaRestController {
             System.err.println("💥 ERROR: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{id}/checkout")
+    @Operation(summary = "Realiza check-out de una estancia")
+    public ResponseEntity<Map<String, String>> realizarCheckout(@PathVariable String id) {
+        try {
+            service.realizarCheckout(id);
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Check-out realizado exitosamente");
+            response.put("status", "success");
+            return ResponseEntity.ok(response); // ← Devuelve JSON
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            response.put("status", "error");
+            return ResponseEntity.badRequest().body(response);
         }
     }
 }

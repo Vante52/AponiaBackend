@@ -36,7 +36,6 @@ public class Pago {
     @Column(name = "id", length = 36)
     private String id;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "tipo", nullable = false, length = 20)
     private TipoPago tipo;
 
@@ -50,7 +49,6 @@ public class Pago {
     @Column(name = "metodo_pago", length = 50)
     private String metodoPago;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false, length = 20)
     private EstadoPago estado = EstadoPago.COMPLETADO;
 

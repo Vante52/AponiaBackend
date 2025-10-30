@@ -166,12 +166,7 @@ class ReservaServiceIntegrationTest {
         });
     }
 
-    /**
-     * Si Hibernate falla por campos obligatorios (fechaCreacion / codigo),
-     * el test genera valores dummy válidos para continuar.
-     */
    private Reserva crearReservaSegura(String concepto, LocalDate inicio, LocalDate fin) {
-    // ✅ Creamos la reserva directamente, sin pasar por la lógica del servicio
     Reserva reserva = new Reserva();
     reserva.setId(UUID.randomUUID().toString());
     reserva.setCliente(cliente);
@@ -180,7 +175,7 @@ class ReservaServiceIntegrationTest {
     reserva.setCodigo("TEST-" + System.currentTimeMillis());
     reservaRepository.saveAndFlush(reserva);
 
-    // ☑️ Si necesitas que existan estancias o relaciones mínimas, puedes agregarlas después
+
     return reserva;
 }
 }

@@ -24,7 +24,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-
 @Entity
 @Table(name = "pagos")
 @Getter
@@ -71,6 +70,7 @@ public class Pago {
     }
 
     public enum EstadoPago {
+        PENDIENTE,
         COMPLETADO,
         FALLIDO,
         REEMBOLSADO

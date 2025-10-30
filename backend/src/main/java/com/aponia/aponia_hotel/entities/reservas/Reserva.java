@@ -37,8 +37,11 @@ public class Reserva {
     @JsonIgnoreProperties({ "passwordHash", "empleadoPerfil", "clientePerfil", "hibernateLazyInitializer", "handler" })
     private Usuario cliente;
 
-    @CreationTimestamp
-    @Column(name = "fecha_creacion", nullable = false, updatable = false)
+    // @CreationTimestamp
+    // @Column(name = "fecha_creacion", nullable = false, updatable = false)
+    // private LocalDateTime fechaCreacion;
+
+    @Column(name = "fecha_creacion", nullable = false)
     private LocalDateTime fechaCreacion;
 
     @Column(name = "estado", nullable = false, length = 32)
@@ -63,7 +66,6 @@ public class Reserva {
     @OneToOne(mappedBy = "reserva", fetch = FetchType.LAZY, orphanRemoval = true)
     @JsonIgnore
     private ResumenPago resumenPago;
-
 
     public enum EstadoReserva {
         CONFIRMADA,

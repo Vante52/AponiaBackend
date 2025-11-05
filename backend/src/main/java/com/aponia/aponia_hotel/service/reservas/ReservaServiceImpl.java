@@ -2,6 +2,7 @@ package com.aponia.aponia_hotel.service.reservas;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
@@ -93,6 +94,11 @@ public class ReservaServiceImpl implements ReservaService {
         }
 
         reserva.setEstado(EstadoReserva.CONFIRMADA);
+
+        if (reserva.getFechaCreacion() == null) {
+            reserva.setFechaCreacion(LocalDateTime.now());
+        }
+
         return repository.save(reserva);
     }
 
@@ -260,6 +266,8 @@ public class ReservaServiceImpl implements ReservaService {
         reserva.setCliente(cliente);
         reserva.setEstado(EstadoReserva.CONFIRMADA);
         reserva.setNotas(notas);
+
+        reserva.setFechaCreacion(LocalDateTime.now());
 
         // Crear la estancia asociada
         Estancia estancia = new Estancia();

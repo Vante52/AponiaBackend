@@ -3,15 +3,9 @@ package com.aponia.aponia_hotel.controller.habitaciones.dto;
 import java.math.BigDecimal;
 import java.util.List;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Data
 public class HabitacionTipoDTO {
     private String id;
     private String nombre;

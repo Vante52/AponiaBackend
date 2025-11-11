@@ -9,6 +9,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import lombok.Builder;
 
 @Entity
 @Table(name = "empleados_perfil")
@@ -16,6 +17,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class EmpleadoPerfil {
 
     @Id

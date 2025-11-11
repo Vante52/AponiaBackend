@@ -1,0 +1,18 @@
+// DTO mínimo
+public record ReservaLiteResponse(
+    String id,
+    String codigo,
+    String estado,
+    java.time.LocalDateTime fechaCreacion,
+    String notas
+) {
+    public static ReservaLiteResponse from(Reserva r) {
+        return new ReservaLiteResponse(
+            r.getId(),
+            r.getCodigo(),
+            r.getEstado().name(),
+            r.getFechaCreacion(),
+            r.getNotas()
+        );
+    }
+}

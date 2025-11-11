@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.aponia.aponia_hotel.controller.habitaciones.dto.HabitacionDTO;
+import com.aponia.aponia_hotel.controller.habitaciones.dto.HabitacionMapper;
 import com.aponia.aponia_hotel.entities.habitaciones.Habitacion;
 import com.aponia.aponia_hotel.service.habitaciones.HabitacionService;
 
@@ -32,12 +33,12 @@ public class HabitacionRestController {
         this.service = service;
     }
 
-    //  LECTURAS GET 
+    // ====== LECTURAS GET ======
     @GetMapping
     @Operation(summary = "Lista todas las habitaciones con su tipo")
     public ResponseEntity<List<HabitacionDTO>> listar() {
         var lista = service.listar().stream()
-                .map(HabitacionDTO::fromEntity)
+                .map(HabitacionMapper.INSTANCE::convert)
                 .toList();
         return ResponseEntity.ok(lista);
     }
@@ -58,7 +59,7 @@ public class HabitacionRestController {
     @Operation(summary = "Obtiene una habitación por ID con su tipo")
     public ResponseEntity<HabitacionDTO> obtener(@PathVariable String id) {
         return service.obtener(id)
-                .map(h -> ResponseEntity.ok(HabitacionDTO.fromEntity(h)))
+                .map(h -> ResponseEntity.ok(HabitacionMapper.INSTANCE.convert(h)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -66,14 +67,14 @@ public class HabitacionRestController {
     @Operation(summary = "Obtiene una habitación por número de habitación con su tipo")
     public ResponseEntity<HabitacionDTO> obtenerPorNumero(@PathVariable Integer numero_habitacion) {
         return service.obtenerPorNumeroHabitacion(numero_habitacion)
-                .map(h -> ResponseEntity.ok(HabitacionDTO.fromEntity(h)))
+                .map(h -> ResponseEntity.ok(HabitacionMapper.INSTANCE.convert(h)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    //  MUTACIONES 
+    // ====== MUTACIONES ======
     @PostMapping
     @Operation(summary = "Crea una nueva habitación")
-    public ResponseEntity<Habitacion> crear(@RequestBody Habitacion habitacion) {
+    public ResponseEntity<HabitacionDTO> crear(@RequestBody Habitacion habitacion) {
         if (habitacion.getId() == null || habitacion.getId().isBlank()) {
             habitacion.setId(UUID.randomUUID().toString());
         }
@@ -83,7 +84,8 @@ public class HabitacionRestController {
         }
 
         Habitacion creada = service.crear(habitacion);
-        return ResponseEntity.status(HttpStatus.CREATED).body(creada);
+        HabitacionDTO dto = HabitacionMapper.INSTANCE.convert(creada);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     @PutMapping("/{id}")

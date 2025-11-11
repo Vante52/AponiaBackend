@@ -1,8 +1,8 @@
 package com.aponia.aponia_hotel.controller.servicios;
 
 import com.aponia.aponia_hotel.controller.servicios.dto.ServicioDTO;
-import com.aponia.aponia_hotel.entities.resources.Imagen;
 import com.aponia.aponia_hotel.entities.servicios.Servicio;
+import com.aponia.aponia_hotel.controller.servicios.dto.ServicioMapper;
 import com.aponia.aponia_hotel.service.servicios.ServicioService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.HttpStatus;
@@ -30,20 +30,22 @@ public class ServicioRestController {
     @GetMapping
     @Operation(summary = "Lista todos los servicios con sus imágenes (DTO)")
     public ResponseEntity<List<ServicioDTO>> listarServicios() {
-        List<ServicioDTO> lista = service.listar().stream()
-                .map(s -> new ServicioDTO(
-                        s.getId(),
-                        s.getNombre(),
-                        s.getDescripcion(),
-                        s.getLugar(),
-                        s.getPrecioPorPersona(),
-                        s.getDuracionMinutos(),
-                        s.getCapacidadMaxima(),
-                        s.getImagenes() != null
-                                ? s.getImagenes().stream().map(Imagen::getUrl).toList()
-                                : List.of()
-                ))
-                .toList();
+        // List<ServicioDTO> lista = service.listar().stream()
+        //         .map(s -> new ServicioDTO(
+        //                 s.getId(),
+        //                 s.getNombre(),
+        //                 s.getDescripcion(),
+        //                 s.getLugar(),
+        //                 s.getPrecioPorPersona(),
+        //                 s.getDuracionMinutos(),
+        //                 s.getCapacidadMaxima(),
+        //                 s.getImagenes() != null
+        //                         ? s.getImagenes().stream().map(Imagen::getUrl).toList()
+        //                         : List.of()
+        //         ))
+        //         .toList();
+        List<ServicioDTO> lista = ServicioMapper.INSTANCE.convert(service.listar());
+
 
         return ResponseEntity.ok(lista);
     }
@@ -52,18 +54,20 @@ public class ServicioRestController {
     @Operation(summary = "Obtiene un servicio por ID")
     public ResponseEntity<ServicioDTO> obtener(@PathVariable String id) {
         return service.obtener(id)
-                .map(s -> new ServicioDTO(
-                        s.getId(),
-                        s.getNombre(),
-                        s.getDescripcion(),
-                        s.getLugar(),
-                        s.getPrecioPorPersona(),
-                        s.getDuracionMinutos(),
-                        s.getCapacidadMaxima(),
-                        s.getImagenes() != null
-                                ? s.getImagenes().stream().map(Imagen::getUrl).toList()
-                                : List.of()
-                ))
+        .map(ServicioMapper.INSTANCE::convert)
+                // .map(s -> new ServicioDTO(
+                //         s.getId(),
+                //         s.getNombre(),
+                //         s.getDescripcion(),
+                //         s.getLugar(),
+                //         s.getPrecioPorPersona(),
+                //         s.getDuracionMinutos(),
+                //         s.getCapacidadMaxima(),
+                //         s.getImagenes() != null
+                //                 ? s.getImagenes().stream().map(Imagen::getUrl).toList()
+                //                 : List.of()
+                // ))
+
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -74,12 +78,16 @@ public class ServicioRestController {
 
     @PostMapping
     @Operation(summary = "Crea un nuevo servicio")
-    public ResponseEntity<Servicio> crear(@RequestBody Servicio servicio) {
+    //public ResponseEntity<Servicio> crear(@RequestBody Servicio servicio) {
+    public ResponseEntity<ServicioDTO> crear(@RequestBody Servicio servicio) {
+
         if (servicio.getId() == null || servicio.getId().isBlank()) {
             servicio.setId(UUID.randomUUID().toString());
         }
         Servicio creado = service.crear(servicio);
-        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+        // return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+        ServicioDTO dto = ServicioMapper.INSTANCE.convert(creado);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     @PutMapping("/{id}")

@@ -1,10 +1,10 @@
 package com.aponia.aponia_hotel.controller.habitaciones;
 
 import com.aponia.aponia_hotel.entities.habitaciones.HabitacionTipo;
-import com.aponia.aponia_hotel.entities.resources.Imagen;
 import com.aponia.aponia_hotel.service.habitaciones.HabitacionService;
 import com.aponia.aponia_hotel.service.habitaciones.HabitacionTipoService;
 import com.aponia.aponia_hotel.controller.habitaciones.dto.HabitacionTipoDTO;
+import com.aponia.aponia_hotel.controller.habitaciones.dto.HabitacionTipoMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -29,16 +29,7 @@ public class HabitacionTipoRestController {
     @GetMapping
     @Operation(summary = "Lista todos los tipos de habitación")
     public ResponseEntity<List<HabitacionTipoDTO>> listar() {
-        var lista = service.listar().stream()
-                .map(t -> new HabitacionTipoDTO(
-                        t.getId(),
-                        t.getNombre(),
-                        t.getDescripcion(),
-                        t.getAforoMaximo(),
-                        t.getPrecioPorNoche(),
-                        t.getActiva(),
-                        t.getImagenes().stream().map(Imagen::getUrl).toList()))
-                .toList();
+        var lista = HabitacionTipoMapper.INSTANCE.convert(service.listar());
         return ResponseEntity.ok(lista);
     }
 
@@ -61,7 +52,7 @@ public class HabitacionTipoRestController {
     // ====== POST (CREATE) ======
     @PostMapping
     @Operation(summary = "Crea un nuevo tipo de habitación")
-    public ResponseEntity<HabitacionTipo> create(@RequestBody HabitacionTipo tipo) {
+    public ResponseEntity<HabitacionTipoDTO> create(@RequestBody HabitacionTipo tipo) {
         tipo.setId(UUID.randomUUID().toString());
 
         if (tipo.getImagenes() != null) {
@@ -71,7 +62,8 @@ public class HabitacionTipoRestController {
         }
 
         HabitacionTipo creado = service.crear(tipo);
-        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+        HabitacionTipoDTO dto = HabitacionTipoMapper.INSTANCE.convert(creado);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     // ====== PUT (UPDATE) ======

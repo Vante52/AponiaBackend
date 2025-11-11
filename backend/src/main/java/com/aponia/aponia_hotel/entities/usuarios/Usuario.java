@@ -4,14 +4,17 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.AllArgsConstructor;
 
 @Entity
 @Table(name = "usuarios")
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class Usuario {
 
     @Id

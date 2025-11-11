@@ -9,13 +9,14 @@ import org.hibernate.annotations.CreationTimestamp;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
-
+import lombok.Builder;
 @Entity
 @Table(name = "clientes_perfil")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class ClientePerfil {
 
     @Id

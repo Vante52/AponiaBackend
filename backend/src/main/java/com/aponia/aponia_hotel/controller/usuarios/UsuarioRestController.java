@@ -1,8 +1,9 @@
 package com.aponia.aponia_hotel.controller.usuarios;
 
-import com.aponia.aponia_hotel.controller.usuarios.dto.UsuarioDTO;
 import com.aponia.aponia_hotel.controller.usuarios.dto.UsuarioCreateRequest;
 import com.aponia.aponia_hotel.entities.usuarios.*;
+import com.aponia.aponia_hotel.controller.usuarios.dto.UsuarioDTO;
+import com.aponia.aponia_hotel.controller.usuarios.dto.UsuarioMapper;
 import com.aponia.aponia_hotel.service.usuarios.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,7 +42,8 @@ public class UsuarioRestController {
     @Operation(summary = "Lista todos los usuarios con información básica de perfil")
     public List<UsuarioDTO> findAll() {
         return usuarioService.listar().stream()
-                .map(UsuarioDTO::fromEntity)
+                //.map(UsuarioDTO::fromEntity)
+                .map(UsuarioMapper.INSTANCE::convert)
                 .collect(Collectors.toList());
     }
 
@@ -50,7 +52,8 @@ public class UsuarioRestController {
     public UsuarioDTO findOne(@PathVariable String id) {
         Usuario usuario = usuarioService.obtener(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-        return UsuarioDTO.fromEntity(usuario);
+        //return UsuarioDTO.fromEntity(usuario);
+        return UsuarioMapper.INSTANCE.convert(usuario);
     }
 
     // === CREACIÓN ===
@@ -87,7 +90,8 @@ public class UsuarioRestController {
             empleadoPerfilService.crear(e);
         }
 
-        return UsuarioDTO.fromEntity(creado);
+        //return UsuarioDTO.fromEntity(creado);
+        return UsuarioMapper.INSTANCE.convert(creado);
     }
 
     // === ACTUALIZACIÓN ===
@@ -109,7 +113,8 @@ public class UsuarioRestController {
         }
 
         Usuario actualizado = usuarioService.actualizar(usuario);
-        return UsuarioDTO.fromEntity(actualizado);
+        //return UsuarioDTO.fromEntity(actualizado);
+        return UsuarioMapper.INSTANCE.convert(actualizado);
     }
 
     // === ELIMINACIÓN ===

@@ -38,21 +38,23 @@ public class RegistroAppService {
             throw new IllegalArgumentException("Ya existe un usuario con ese email.");
 
         // 1) Usuario
-        var u = new Usuario();
-        u.setId(UUID.randomUUID().toString());
-        u.setEmail(email);
-        u.setPasswordHash(password); // (plain por ahora)
-        u.setRol(Usuario.UserRole.CLIENTE);
+        var u = Usuario.builder()
+                .id(UUID.randomUUID().toString())
+                .email(email)
+                .passwordHash(password) // (plain por ahora)
+                .rol(Usuario.UserRole.CLIENTE)
+                .build();
         u = usuarioService.crear(u); // queda managed en ESTA tx
 
         // 2) Perfil (dueño de la relación con @MapsId)
-        var p = new ClientePerfil();
-        p.setUsuario(u); // clave para @MapsId
-        p.setNombreCompleto(nombreCompleto);
-        p.setTelefono(telefono);
+        var p = ClientePerfil.builder()
+                .usuario(u) // clave para @MapsId
+                .nombreCompleto(nombreCompleto)
+                .telefono(telefono)
+                .build();
         clientePerfilService.crear(p);
 
-        // (opcional) reflejar la relación en memoria
+        // reflejar la relación en memoria
         u.setClientePerfil(p);
 
         return u;
@@ -70,21 +72,23 @@ public class RegistroAppService {
             throw new IllegalArgumentException("Ya existe un usuario con ese email.");
 
         // 1) Usuario
-        var u = new Usuario();
-        u.setId(UUID.randomUUID().toString());
-        u.setEmail(email);
-        u.setPasswordHash(password); // (plain por ahora)
-        u.setRol(Usuario.UserRole.ADMIN);
+        var u = Usuario.builder()
+                .id(UUID.randomUUID().toString())
+                .email(email)
+                .passwordHash(password) // (plain por ahora)
+                .rol(Usuario.UserRole.ADMIN)
+                .build();
         u = usuarioService.crear(u); // queda managed en ESTA tx
 
         // 2) Perfil (dueño de la relación con @MapsId)
-        var p = new ClientePerfil();
-        p.setUsuario(u); // clave para @MapsId
-        p.setNombreCompleto(nombreCompleto);
-        p.setTelefono(telefono);
+        var p = ClientePerfil.builder()
+                .usuario(u) // clave para @MapsId
+                .nombreCompleto(nombreCompleto)
+                .telefono(telefono)
+                .build();
         clientePerfilService.crear(p);
 
-        // (opcional) reflejar la relación en memoria
+        // reflejar la relación en memoria
         u.setClientePerfil(p);
 
         return u;
@@ -92,29 +96,29 @@ public class RegistroAppService {
 
     @Transactional
     public Usuario registrarEmpleado(String email, String password, String nombreCompleto,
-            String telefono, String cargo, BigDecimal salario) {
+                                     String telefono, String cargo, BigDecimal salario) {
 
         if (usuarioService.findByEmail(email).isPresent())
             throw new IllegalArgumentException("Ya existe un usuario con ese email.");
 
-        var u = new Usuario();
-        u.setId(UUID.randomUUID().toString());
-        u.setEmail(email);
-        u.setPasswordHash(password);
-        u.setRol(Usuario.UserRole.STAFF);
+        var u = Usuario.builder()
+                .id(UUID.randomUUID().toString())
+                .email(email)
+                .passwordHash(password)
+                .rol(Usuario.UserRole.STAFF)
+                .build();
         u = usuarioService.crear(u);
 
-        var e = new EmpleadoPerfil();
-        e.setUsuario(u);
-        e.setNombreCompleto(nombreCompleto);
-        e.setTelefono(telefono);
-        e.setCargo(cargo);
-        e.setSalario(salario);
+        var e = EmpleadoPerfil.builder()
+                .usuario(u)
+                .nombreCompleto(nombreCompleto)
+                .telefono(telefono)
+                .cargo(cargo)
+                .salario(salario)
+                .build();
         empleadoPerfilService.crear(e);
 
         u.setEmpleadoPerfil(e);
         return u;
     }
-
-
 }

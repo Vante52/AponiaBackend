@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,9 @@ public class RegistroAppService {
     @Autowired
     private EmpleadoPerfilService empleadoPerfilService;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Transactional
     public Usuario registrarCliente(String email, String password, String nombreCompleto, String telefono) {
         if (email == null || email.isBlank())
@@ -41,7 +45,7 @@ public class RegistroAppService {
         var u = Usuario.builder()
                 .id(UUID.randomUUID().toString())
                 .email(email)
-                .passwordHash(password) // (plain por ahora)
+                .passwordHash(passwordEncoder.encode(password))
                 .rol(Usuario.UserRole.CLIENTE)
                 .build();
         u = usuarioService.crear(u); // queda managed en ESTA tx
@@ -75,7 +79,7 @@ public class RegistroAppService {
         var u = Usuario.builder()
                 .id(UUID.randomUUID().toString())
                 .email(email)
-                .passwordHash(password) // (plain por ahora)
+                .passwordHash(passwordEncoder.encode(password))
                 .rol(Usuario.UserRole.ADMIN)
                 .build();
         u = usuarioService.crear(u); // queda managed en ESTA tx
@@ -104,7 +108,7 @@ public class RegistroAppService {
         var u = Usuario.builder()
                 .id(UUID.randomUUID().toString())
                 .email(email)
-                .passwordHash(password)
+                .passwordHash(passwordEncoder.encode(password))
                 .rol(Usuario.UserRole.STAFF)
                 .build();
         u = usuarioService.crear(u);

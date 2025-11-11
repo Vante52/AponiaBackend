@@ -8,6 +8,7 @@ import com.aponia.aponia_hotel.service.usuarios.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,13 +25,17 @@ public class AuthRestController {
     private final RegistroAppService registroAppService;
     private final LoginAppService loginAppService;
     private final UsuarioService usuarioService;
+    private final PasswordEncoder passwordEncoder;
+
 
     public AuthRestController(RegistroAppService registroAppService,
             LoginAppService loginAppService,
-            UsuarioService usuarioService) {
+            UsuarioService usuarioService,
+            PasswordEncoder passwordEncoder) {
         this.registroAppService = registroAppService;
         this.loginAppService = loginAppService;
         this.usuarioService = usuarioService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // ============================================================
@@ -220,7 +225,7 @@ public class AuthRestController {
                     String nueva = body.get("newPassword");
                     String confirm = body.get("confirmPassword");
 
-                    if (!usuario.getPasswordHash().equals(current))
+                    if (!passwordEncoder.matches(current, usuario.getPasswordHash()))
                         return ResponseEntity.badRequest()
                                 .body(Map.of("ok", false, "error", "Contraseña actual incorrecta"));
 
@@ -228,8 +233,8 @@ public class AuthRestController {
                         return ResponseEntity.badRequest()
                                 .body(Map.of("ok", false, "error", "Las contraseñas no coinciden"));
 
-                    usuario.setPasswordHash(nueva);
-                    usuarioService.actualizar(usuario);
+                                usuario.setPasswordHash(passwordEncoder.encode(nueva));
+                                usuarioService.actualizar(usuario);
                     return ResponseEntity.ok(Map.of("ok", true, "message", "Contraseña actualizada"));
                 })
                 .orElse(ResponseEntity.badRequest().body(Map.of("ok", false, "error", "Usuario no encontrado")));

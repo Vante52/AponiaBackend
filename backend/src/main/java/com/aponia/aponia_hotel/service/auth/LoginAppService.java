@@ -7,14 +7,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.aponia.aponia_hotel.entities.usuarios.Usuario;
 import com.aponia.aponia_hotel.service.usuarios.UsuarioService;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 
 @Service
 public class LoginAppService {
 
     private final UsuarioService usuarioService;
+    private final PasswordEncoder passwordEncoder;
 
-    public LoginAppService(UsuarioService usuarioService) {
+
+    public LoginAppService(UsuarioService usuarioService, PasswordEncoder passwordEncoder) {
         this.usuarioService = usuarioService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -37,7 +42,7 @@ public class LoginAppService {
         }
 
         Usuario usuario = opt.get();
-        if (!usuario.getPasswordHash().equals(password)) {
+        if (!passwordEncoder.matches(password, usuario.getPasswordHash())) {
             throw new IllegalArgumentException("Contraseña incorrecta.");
         }
 

@@ -45,6 +45,10 @@ public class AuthRestController {
 
             Usuario usuario = loginAppService.login(email, password);
 
+            if (usuario == null) {
+                return ResponseEntity.badRequest().body(Map.of("ok", false, "error", "Credenciales incorrectas."));
+            }
+
             // Guardamos en sesión HTTP (temporal)
             session.setAttribute("AUTH_USER_ID", usuario.getId());
             session.setAttribute("AUTH_USER_EMAIL", usuario.getEmail());

@@ -5,6 +5,7 @@ Servicio REST de Aponia: Gestión de  reservas, estancias, servicios y pagos con
 1. Clona el repositorio.
 2. Crea el archivo `.env`.
 3. Ejecuta `docker compose up -d db`.
+4. Ejecuta `docker exec -i MiPostgres psql -U samiLeMeteAlFront -d aponiadb < docker/initdb/seed.sql`.
 
 La primera vez que se cree el volumen, PostgreSQL restaurará automáticamente los datos del volcado versionado.
 

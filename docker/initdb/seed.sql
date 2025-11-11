@@ -1,11 +1,6 @@
---
--- PostgreSQL database dump
---
+-- PostgreSQL database dump corregido
 
-\restrict Zpg7DNgg8493TJpnr6ut6GN35bf21rgIhhdmpaAeQZwXywfX8g6lLLMmD841GOz
 
--- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
--- Dumped by pg_dump version 16.10 (Debian 16.10-1.pgdg13+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -18,11 +13,8 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
---
--- Name: actualizar_resumen_despues_cambio(); Type: FUNCTION; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE FUNCTION public.actualizar_resumen_despues_cambio() RETURNS trigger
+-- FUNCIONES
+CREATE OR REPLACE FUNCTION public.actualizar_resumen_despues_cambio() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -45,32 +37,36 @@ BEGIN
 END;
 $$;
 
-
 ALTER FUNCTION public.actualizar_resumen_despues_cambio() OWNER TO "samiLeMeteAlFront";
 
---
--- Name: actualizar_resumen_pagos(character); Type: FUNCTION; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE FUNCTION public.actualizar_resumen_pagos(p_reserva_id character) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
+CREATE OR REPLACE FUNCTION public.actualizar_resumen_pagos(p_reserva_id varchar(36)) 
+RETURNS void
+LANGUAGE plpgsql
+AS $$
 BEGIN
-    INSERT INTO resumen_pagos (reserva_id, total_habitaciones, total_servicios, total_reserva, total_pagado, saldo_pendiente, ultima_actualizacion)
+    INSERT INTO resumen_pagos (
+        reserva_id, 
+        total_habitaciones, 
+        total_servicios, 
+        total_reserva, 
+        total_pagado, 
+        saldo_pendiente, 
+        ultima_actualizacion
+    )
     SELECT 
         r.id,
         COALESCE(SUM(e.total_estadia), 0),
         COALESCE(SUM(rs.total_servicio), 0),
         COALESCE(SUM(e.total_estadia), 0) + COALESCE(SUM(rs.total_servicio), 0),
-        COALESCE(SUM(p.monto) FILTER (WHERE p.estado = 'completado'), 0),
+        COALESCE(SUM(p.monto) FILTER (WHERE p.estado = 'COMPLETADO'), 0),
         (COALESCE(SUM(e.total_estadia), 0) + COALESCE(SUM(rs.total_servicio), 0)) - 
-        COALESCE(SUM(p.monto) FILTER (WHERE p.estado = 'completado'), 0),
+        COALESCE(SUM(p.monto) FILTER (WHERE p.estado = 'COMPLETADO'), 0),
         CURRENT_TIMESTAMP
     FROM reservas r
     LEFT JOIN estancias e ON r.id = e.reserva_id
     LEFT JOIN reservas_servicios rs ON r.id = rs.reserva_id
     LEFT JOIN pagos p ON r.id = p.reserva_id
-    WHERE r.id = p_reserva_id
+    WHERE r.id = p_reserva_id  
     GROUP BY r.id
     ON CONFLICT (reserva_id) 
     DO UPDATE SET
@@ -83,34 +79,32 @@ BEGIN
 END;
 $$;
 
+ALTER FUNCTION public.actualizar_resumen_pagos(p_reserva_id varchar(36)) OWNER TO "samiLeMeteAlFront";
 
-ALTER FUNCTION public.actualizar_resumen_pagos(p_reserva_id character) OWNER TO "samiLeMeteAlFront";
-
---
--- Name: asignar_habitacion_al_confirmar(); Type: FUNCTION; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE FUNCTION public.asignar_habitacion_al_confirmar() RETURNS trigger
+CREATE OR REPLACE FUNCTION public.asignar_habitacion_al_confirmar() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 DECLARE
     v_habitacion_id CHAR(36);
     e_record RECORD;
 BEGIN
-    IF NEW.estado = 'confirmada' AND OLD.estado != 'confirmada' THEN
+    IF NEW.estado = 'CONFIRMADA' AND OLD.estado != 'CONFIRMADA' THEN
         FOR e_record IN 
             SELECT * FROM estancias WHERE reserva_id = NEW.id AND habitacion_asignada IS NULL
         LOOP
             v_habitacion_id := asignar_habitacion_disponible(
                 e_record.tipo_habitacion_id, 
-                e_record.check_in, 
-                e_record.check_out
+                e_record.entrada, 
+                e_record.salida
             );
             
             IF v_habitacion_id IS NOT NULL THEN
                 UPDATE estancias
                 SET habitacion_asignada = v_habitacion_id
                 WHERE id = e_record.id;
+            ELSE
+                RAISE EXCEPTION 'No hay habitaciones disponibles del tipo % para las fechas % a %', 
+                    e_record.tipo_habitacion_id, e_record.entrada, e_record.salida;
             END IF;
         END LOOP;
     END IF;
@@ -119,19 +113,16 @@ BEGIN
 END;
 $$;
 
-
 ALTER FUNCTION public.asignar_habitacion_al_confirmar() OWNER TO "samiLeMeteAlFront";
 
---
--- Name: asignar_habitacion_disponible(character, date, date); Type: FUNCTION; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE FUNCTION public.asignar_habitacion_disponible(p_tipo_id character, p_check_in date, p_check_out date) RETURNS character
+-- Función para asignar habitación disponible (verifica ocupación por fechas)
+CREATE OR REPLACE FUNCTION public.asignar_habitacion_disponible(p_tipo_id varchar(36), p_check_in date, p_check_out date) RETURNS varchar(36)
     LANGUAGE plpgsql
     AS $$
 DECLARE
     v_habitacion_id CHAR(36);
 BEGIN
+    -- Busca una habitación del tipo solicitado que NO esté ocupada en las fechas dadas
     SELECT h.id INTO v_habitacion_id
     FROM habitaciones h
     WHERE h.tipo_id = p_tipo_id
@@ -140,8 +131,9 @@ BEGIN
         SELECT 1
         FROM estancias e
         WHERE e.habitacion_asignada = h.id
-        AND NOT (p_check_out <= e.check_in OR p_check_in >= e.check_out)
         AND e.habitacion_asignada IS NOT NULL
+        -- Verifica que las fechas NO se traslapen
+        AND NOT (p_check_out <= e.entrada OR p_check_in >= e.salida)
     )
     LIMIT 1;
     
@@ -149,143 +141,89 @@ BEGIN
 END;
 $$;
 
+ALTER FUNCTION public.asignar_habitacion_disponible(p_tipo_id varchar(36), p_check_in date, p_check_out date) OWNER TO "samiLeMeteAlFront";
 
-ALTER FUNCTION public.asignar_habitacion_disponible(p_tipo_id character, p_check_in date, p_check_out date) OWNER TO "samiLeMeteAlFront";
-
---
--- Name: generar_habitaciones_automaticamente(); Type: FUNCTION; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE FUNCTION public.generar_habitaciones_automaticamente() RETURNS void
+-- Función para verificar disponibilidad de un tipo de habitación
+CREATE OR REPLACE FUNCTION public.verificar_disponibilidad_tipo(p_tipo_id varchar(36), p_check_in date, p_check_out date) RETURNS integer
     LANGUAGE plpgsql
     AS $$
 DECLARE
-    tipo RECORD;
-    i INT;
+    v_total_habitaciones integer;
+    v_habitaciones_ocupadas integer;
+    v_disponibles integer;
 BEGIN
-    FOR tipo IN SELECT * FROM habitaciones_tipos LOOP
-        FOR i IN tipo.rango_inicio..tipo.rango_fin LOOP
-            INSERT INTO habitaciones (id, tipo_id, numero, activa)
-            VALUES (
-                'hab_' || i,
-                tipo.id,
-                i,
-                TRUE
-            )
-            ON CONFLICT (numero) DO NOTHING;
-        END LOOP;
-    END LOOP;
+    -- Cuenta el total de habitaciones activas de este tipo
+    SELECT COUNT(*) INTO v_total_habitaciones
+    FROM habitaciones
+    WHERE tipo_id = p_tipo_id AND activa = TRUE;
+    
+    -- Cuenta cuántas están ocupadas en el rango de fechas
+    SELECT COUNT(DISTINCT e.habitacion_asignada) INTO v_habitaciones_ocupadas
+    FROM estancias e
+    WHERE e.habitacion_asignada IN (
+        SELECT id FROM habitaciones WHERE tipo_id = p_tipo_id AND activa = TRUE
+    )
+    AND e.habitacion_asignada IS NOT NULL
+    AND NOT (p_check_out <= e.entrada OR p_check_in >= e.salida);
+    
+    v_disponibles := v_total_habitaciones - COALESCE(v_habitaciones_ocupadas, 0);
+    
+    RETURN v_disponibles;
 END;
 $$;
 
-
-ALTER FUNCTION public.generar_habitaciones_automaticamente() OWNER TO "samiLeMeteAlFront";
-
---
--- Name: inicializar_resumen_pagos(); Type: FUNCTION; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE FUNCTION public.inicializar_resumen_pagos() RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-DECLARE
-    r RECORD;
-BEGIN
-    FOR r IN SELECT id FROM reservas LOOP
-        PERFORM actualizar_resumen_pagos(r.id);
-    END LOOP;
-END;
-$$;
-
-
-ALTER FUNCTION public.inicializar_resumen_pagos() OWNER TO "samiLeMeteAlFront";
+ALTER FUNCTION public.verificar_disponibilidad_tipo(p_tipo_id varchar(36), p_check_in date, p_check_out date) OWNER TO "samiLeMeteAlFront";
 
 SET default_tablespace = '';
-
 SET default_table_access_method = heap;
 
---
--- Name: clientes_perfil; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
---
+-- TABLAS
+CREATE TABLE IF NOT EXISTS public.usuarios (
+    id            VARCHAR(36) PRIMARY KEY,
+    email         VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    rol           VARCHAR(50)  NOT NULL DEFAULT 'CLIENTE',
+    CONSTRAINT check_rol_valido
+        CHECK (rol IN ('ADMIN','CLIENTE','STAFF','RECEPCIONISTA'))
+);
 
-CREATE TABLE public.clientes_perfil (
-    usuario_id character varying(36) NOT NULL,
-    nombre_completo character varying(150) NOT NULL,
-    telefono character varying(25),
-    fecha_registro timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    version bigint
+ALTER TABLE public.usuarios OWNER TO "samiLeMeteAlFront";
+CREATE TABLE IF NOT EXISTS public.clientes_perfil (
+    usuario_id     VARCHAR(36) PRIMARY KEY,
+    nombre_completo VARCHAR(150) NOT NULL,
+    telefono        VARCHAR(25),
+    fecha_registro  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    version         BIGINT,
+    CONSTRAINT fk_clientes_perfil_usuario
+        FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id)
 );
 
 
 ALTER TABLE public.clientes_perfil OWNER TO "samiLeMeteAlFront";
 
---
--- Name: empleados_perfil; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE TABLE public.empleados_perfil (
-    usuario_id character varying(36) NOT NULL,
-    nombre_completo character varying(150) NOT NULL,
-    telefono character varying(25),
-    cargo character varying(100) NOT NULL,
-    salario numeric(12,2),
-    fecha_contratacion date DEFAULT CURRENT_DATE NOT NULL,
-    version bigint
+CREATE TABLE IF NOT EXISTS public.empleados_perfil (
+    usuario_id         VARCHAR(36) PRIMARY KEY,
+    nombre_completo    VARCHAR(150) NOT NULL,
+    telefono           VARCHAR(25),
+    cargo              VARCHAR(100) NOT NULL,
+    salario            NUMERIC(12,2),
+    fecha_contratacion DATE NOT NULL DEFAULT CURRENT_DATE,
+    version            BIGINT,
+    CONSTRAINT fk_empleados_perfil_usuario
+        FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id),
+    CONSTRAINT check_salario_no_negativo CHECK (salario IS NULL OR salario >= 0)
 );
 
 
 ALTER TABLE public.empleados_perfil OWNER TO "samiLeMeteAlFront";
 
---
--- Name: estancias; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE TABLE public.estancias (
-    id character varying(36) NOT NULL,
-    reserva_id character varying(36) NOT NULL,
-    tipo_habitacion_id character varying(36) NOT NULL,
-    check_in boolean DEFAULT false NOT NULL,
-    check_out boolean DEFAULT false NOT NULL,
-    entrada date NOT NULL,
-    salida date NOT NULL,
-    numero_huespedes integer NOT NULL,
-    precio_por_noche numeric(12,2) NOT NULL,
-    total_estadia numeric(12,2) NOT NULL,
-    habitacion_asignada character varying(36),
-    asignada_por_empleado_id character varying(36),
-    checkin_por_empleado_id character varying(36),
-    checkout_por_empleado_id character varying(36),
-    CONSTRAINT check_fechas_validas CHECK ((salida > entrada)),
-    CONSTRAINT check_huespedes_positivo CHECK ((numero_huespedes > 0)),
-    CONSTRAINT check_precio_positivo CHECK ((precio_por_noche >= (0)::numeric)),
-    CONSTRAINT check_total_positivo CHECK ((total_estadia >= (0)::numeric))
-);
 
 
-ALTER TABLE public.estancias OWNER TO "samiLeMeteAlFront";
-
---
--- Name: habitaciones; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE TABLE public.habitaciones (
-    id character varying(36) NOT NULL,
-    tipo_id character varying(36) NOT NULL,
-    numero integer NOT NULL,
-    activa boolean DEFAULT true NOT NULL,
-    CONSTRAINT check_numero_valido CHECK ((numero > 0))
-);
 
 
-ALTER TABLE public.habitaciones OWNER TO "samiLeMeteAlFront";
-
---
--- Name: habitaciones_tipos; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE TABLE public.habitaciones_tipos (
-    id character varying(36) NOT NULL,
-    nombre character varying(50) NOT NULL,
+CREATE TABLE IF NOT EXISTS public.habitaciones_tipos (
+    id varchar(36) PRIMARY KEY,
+    nombre varchar(50) UNIQUE NOT NULL,
     descripcion text,
     aforo_maximo integer NOT NULL,
     precio_por_noche numeric(12,2) NOT NULL,
@@ -295,888 +233,456 @@ CREATE TABLE public.habitaciones_tipos (
 );
 
 
+CREATE TABLE IF NOT EXISTS public.habitaciones (
+    id varchar(36) PRIMARY KEY,
+    tipo_id varchar(36) NOT NULL,
+    numero integer UNIQUE NOT NULL,
+    activa boolean DEFAULT true NOT NULL,
+    CONSTRAINT fk_habitaciones_tipo
+        FOREIGN KEY (tipo_id) REFERENCES public.habitaciones_tipos(id),
+    CONSTRAINT check_numero_valido CHECK ((numero > 0))
+);
+
+ALTER TABLE public.habitaciones OWNER TO "samiLeMeteAlFront";
+
+CREATE TABLE IF NOT EXISTS public.habitaciones_tipos (
+    id               VARCHAR(36) PRIMARY KEY,
+    nombre           VARCHAR(50) UNIQUE NOT NULL,
+    descripcion      TEXT,
+    aforo_maximo     INTEGER NOT NULL,
+    precio_por_noche NUMERIC(12,2) NOT NULL,
+    activa           BOOLEAN NOT NULL DEFAULT TRUE,
+    CONSTRAINT check_aforo_positivo CHECK (aforo_maximo > 0),
+    CONSTRAINT check_precio_positivo CHECK (precio_por_noche >= 0)
+);
+
 ALTER TABLE public.habitaciones_tipos OWNER TO "samiLeMeteAlFront";
 
---
--- Name: imagenes; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
---
+CREATE TABLE IF NOT EXISTS public.reservas (
+    id              VARCHAR(36) PRIMARY KEY,
+    codigo          VARCHAR(32) UNIQUE NOT NULL,
+    cliente_id      VARCHAR(36) NOT NULL,
+    fecha_creacion  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    estado          VARCHAR(32) NOT NULL DEFAULT 'CONFIRMADA',
+    notas           TEXT,
 
-CREATE TABLE public.imagenes (
-    id character varying(36) NOT NULL,
-    servicio_id character varying(36),
-    tipo_habitacion_id character varying(36),
-    url character varying(500) NOT NULL,
-    CONSTRAINT check_imagen_destino CHECK ((((servicio_id IS NOT NULL) AND (tipo_habitacion_id IS NULL)) OR ((servicio_id IS NULL) AND (tipo_habitacion_id IS NOT NULL))))
+    CONSTRAINT fk_reservas_cliente
+        FOREIGN KEY (cliente_id) REFERENCES public.usuarios(id),
+
+    CONSTRAINT check_estado_valido
+        CHECK (estado IN ('CONFIRMADA','CANCELADA','COMPLETADA'))
 );
-
-
-ALTER TABLE public.imagenes OWNER TO "samiLeMeteAlFront";
-
---
--- Name: pagos; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE TABLE public.pagos (
-    id character varying(36) NOT NULL,
-    reserva_id character varying(36) NOT NULL,
-    tipo character varying(20) NOT NULL,
-    monto numeric(12,2) NOT NULL,
-    fecha timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    metodo_pago character varying(50),
-    estado character varying(20) DEFAULT 'pendiente'::character varying NOT NULL,
-    concepto character varying(200),
-    registrado_por_empleado_id character varying(36),
-    CONSTRAINT check_estado_pago_valido CHECK (((estado)::text = ANY (ARRAY[('pendiente'::character varying)::text, ('completado'::character varying)::text, ('fallido'::character varying)::text, ('reembolsado'::character varying)::text]))),
-    CONSTRAINT check_monto_positivo CHECK ((monto > (0)::numeric)),
-    CONSTRAINT check_tipo_valido CHECK (((tipo)::text = ANY (ARRAY[('anticipo'::character varying)::text, ('pago_parcial'::character varying)::text, ('pago_completo'::character varying)::text, ('reembolso'::character varying)::text])))
-);
-
-
-ALTER TABLE public.pagos OWNER TO "samiLeMeteAlFront";
-
---
--- Name: reservas; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE TABLE public.reservas (
-    id character varying(36) NOT NULL,
-    codigo character varying(32) NOT NULL,
-    cliente_id character varying(36) NOT NULL,
-    fecha_creacion timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    estado character varying(32) DEFAULT 'pendiente'::character varying NOT NULL,
-    notas text,
-    creada_por_empleado_id character varying(36),
-    CONSTRAINT check_estado_valido CHECK (((estado)::text = ANY (ARRAY[('pendiente'::character varying)::text, ('confirmada'::character varying)::text, ('cancelada'::character varying)::text, ('completada'::character varying)::text])))
-);
-
 
 ALTER TABLE public.reservas OWNER TO "samiLeMeteAlFront";
 
---
--- Name: reservas_servicios; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
---
+CREATE TABLE IF NOT EXISTS public.servicios (
+    id                  VARCHAR(36) PRIMARY KEY,
+    nombre              VARCHAR(120) NOT NULL,
+    descripcion         TEXT,
+    lugar               VARCHAR(120) NOT NULL,
+    precio_por_persona  NUMERIC(12,2) NOT NULL,
+    duracion_minutos    INTEGER NOT NULL,
+    capacidad_maxima    INTEGER,
 
-CREATE TABLE public.reservas_servicios (
-    id character varying(36) NOT NULL,
-    reserva_id character varying(36) NOT NULL,
-    servicio_id character varying(36) NOT NULL,
-    fecha date NOT NULL,
-    hora_inicio time without time zone NOT NULL,
-    numero_personas integer NOT NULL,
-    precio_por_persona numeric(12,2) NOT NULL,
-    total_servicio numeric(12,2) NOT NULL,
-    contratado_por_empleado_id character varying(36),
-    CONSTRAINT check_personas_positivo CHECK ((numero_personas > 0)),
-    CONSTRAINT check_precio_positivo CHECK ((precio_por_persona >= (0)::numeric)),
-    CONSTRAINT check_total_positivo CHECK ((total_servicio >= (0)::numeric))
+    CONSTRAINT check_precio_positivo    CHECK (precio_por_persona >= 0),
+    CONSTRAINT check_duracion_positiva  CHECK (duracion_minutos > 0),
+    CONSTRAINT check_capacidad_positiva CHECK (capacidad_maxima IS NULL OR capacidad_maxima > 0)
 );
-
-
-ALTER TABLE public.reservas_servicios OWNER TO "samiLeMeteAlFront";
-
---
--- Name: resumen_pagos; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE TABLE public.resumen_pagos (
-    reserva_id character varying(36) NOT NULL,
-    total_habitaciones numeric(12,2) DEFAULT 0 NOT NULL,
-    total_servicios numeric(12,2) DEFAULT 0 NOT NULL,
-    total_reserva numeric(12,2) DEFAULT 0 NOT NULL,
-    total_pagado numeric(12,2) DEFAULT 0 NOT NULL,
-    saldo_pendiente numeric(12,2) DEFAULT 0 NOT NULL,
-    ultima_actualizacion timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
-ALTER TABLE public.resumen_pagos OWNER TO "samiLeMeteAlFront";
-
---
--- Name: servicio_disponibilidad; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE TABLE public.servicio_disponibilidad (
-    id character varying(36) NOT NULL,
-    servicio_id character varying(36) NOT NULL,
-    fecha date NOT NULL,
-    hora_inicio time without time zone NOT NULL,
-    hora_fin time without time zone NOT NULL,
-    capacidad_disponible integer NOT NULL,
-    CONSTRAINT check_capacidad_valida CHECK ((capacidad_disponible >= 0)),
-    CONSTRAINT check_horas_validas CHECK ((hora_fin > hora_inicio))
-);
-
-
-ALTER TABLE public.servicio_disponibilidad OWNER TO "samiLeMeteAlFront";
-
---
--- Name: servicios; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE TABLE public.servicios (
-    id character varying(36) NOT NULL,
-    nombre character varying(120) NOT NULL,
-    descripcion text,
-    lugar character varying(120) NOT NULL,
-    precio_por_persona numeric(12,2) NOT NULL,
-    duracion_minutos integer NOT NULL,
-    capacidad_maxima integer,
-    CONSTRAINT check_precio_positivo CHECK ((precio_por_persona >= (0)::numeric))
-);
-
 
 ALTER TABLE public.servicios OWNER TO "samiLeMeteAlFront";
 
---
--- Name: usuarios; Type: TABLE; Schema: public; Owner: samiLeMeteAlFront
---
 
-CREATE TABLE public.usuarios (
-    id character varying(36) NOT NULL,
-    email character varying(255) NOT NULL,
-    password_hash character varying(255) NOT NULL,
-    rol character varying(50) DEFAULT 'CLIENTE'::character varying NOT NULL,
-    CONSTRAINT check_rol_valido CHECK (((rol)::text = ANY (ARRAY[('ADMIN'::character varying)::text, ('CLIENTE'::character varying)::text, ('STAFF'::character varying)::text, ('RECEPCIONISTA'::character varying)::text])))
+CREATE TABLE IF NOT EXISTS public.estancias (
+    id                   VARCHAR(36) PRIMARY KEY,
+    reserva_id           VARCHAR(36) NOT NULL,
+    tipo_habitacion_id   VARCHAR(36) NOT NULL,
+    check_in             BOOLEAN NOT NULL DEFAULT FALSE,
+    check_out            BOOLEAN NOT NULL DEFAULT FALSE,
+    entrada              DATE    NOT NULL,
+    salida               DATE    NOT NULL,
+    numero_huespedes     INTEGER NOT NULL,
+    precio_por_noche     NUMERIC(12,2) NOT NULL,
+    total_estadia        NUMERIC(12,2) NOT NULL,
+    habitacion_asignada  VARCHAR(36),
+    CONSTRAINT fk_estancias_reserva
+        FOREIGN KEY (reserva_id) REFERENCES public.reservas(id),
+    CONSTRAINT fk_estancias_tipo_habitacion
+        FOREIGN KEY (tipo_habitacion_id) REFERENCES public.habitaciones_tipos(id),
+    CONSTRAINT fk_estancias_habitacion_asignada
+        FOREIGN KEY (habitacion_asignada) REFERENCES public.habitaciones(id),
+    CONSTRAINT check_fechas_validas       CHECK (salida > entrada),
+    CONSTRAINT check_huespedes_positivo   CHECK (numero_huespedes > 0),
+    CONSTRAINT check_precio_positivo      CHECK (precio_por_noche >= 0),
+    CONSTRAINT check_total_positivo       CHECK (total_estadia   >= 0)
 );
 
-
-ALTER TABLE public.usuarios OWNER TO "samiLeMeteAlFront";
-
---
--- Data for Name: clientes_perfil; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
---
-
-COPY public.clientes_perfil (usuario_id, nombre_completo, telefono, fecha_registro, version) FROM stdin;
-7325d128-3b86-40fb-865c-4584b25cb2f9	Aguirre	234567	2025-09-08 22:51:27.58619	\N
-60fc894b-e09a-4265-b436-df53a490e2eb	samuel campos	321	2025-09-09 10:03:56.095483	\N
-0bf298eb-bc81-4938-ad2c-b7f96a13a105	nuevo	3002112575	2025-09-09 10:57:58.800666	\N
-cli_001	Carlos Pérez	3000000000	2025-10-07 10:41:37.742121	\N
-apitest-1759996794	Cliente Demo	555-0001	2025-10-09 02:59:54.811388	0
-apitest-1759996811	Cliente Demo	555-0001	2025-10-09 03:00:11.450914	0
-apitest-1759998158	Cliente Demo	555-0001	2025-10-09 03:22:39.211247	0
-apitest-1759998208	Cliente Demo	555-0001	2025-10-09 03:23:28.762635	0
-apitest-1759998576	Cliente Demo Actualizado	555-9999	2025-10-09 03:29:37.047301	1
-apitest-1759998594	Cliente Demo Actualizado	555-9999	2025-10-09 03:29:54.677898	1
-\.
-
-
---
--- Data for Name: empleados_perfil; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
---
-
-COPY public.empleados_perfil (usuario_id, nombre_completo, telefono, cargo, salario, fecha_contratacion, version) FROM stdin;
-emp_002	Hania Campos	3019876543	Recepcionista	1750000.00	2023-01-15	\N
-emp_003	Santiago Fortich	3204567890	Chef Ejecutivo	2800000.00	2021-08-20	\N
-emp_004	Andrés Gómez	3107654321	Camarero	1500000.00	2022-11-01	\N
-emp_005	Karen Manuela	3152345678	Camarera	1500000.00	2023-06-12	\N
-emp_006	Paola Aguilera	3186543210	Sous Chef	2300000.00	2023-09-01	\N
-emp_007	Sebastian Angarita	3205558899	Gerente General	4200000.00	2020-03-05	\N
-emp_008	Camilo Triana	3114455667	Mantenimiento	1600000.00	2022-02-17	\N
-apitest-1759996794	Empleado Demo	555-0002	Recepcionista	1800.50	2020-01-01	0
-apitest-1759996811	Empleado Demo	555-0002	Recepcionista	1800.50	2020-01-01	0
-apitest-1759998158	Empleado Demo	555-0002	Recepcionista	1800.50	2020-01-01	0
-apitest-1759998208	Empleado Demo	555-0002	Recepcionista	1800.50	2020-01-01	0
-apitest-1759998576	Empleado Demo Actualizado	555-8888	Supervisor	2500.75	2019-05-20	1
-apitest-1759998594	Empleado Demo Actualizado	555-8888	Supervisor	2500.75	2019-05-20	1
-\.
-
-
---
--- Data for Name: estancias; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
---
-
-COPY public.estancias (id, reserva_id, tipo_habitacion_id, check_in, check_out, entrada, salida, numero_huespedes, precio_por_noche, total_estadia, habitacion_asignada, asignada_por_empleado_id, checkin_por_empleado_id, checkout_por_empleado_id) FROM stdin;
-est_0001	res_0001	tipo_normal	f	f	2025-10-10	2025-10-13	2	250000.00	750000.00	hab_101	emp_001	\N	\N
-\.
-
-
---
--- Data for Name: habitaciones; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
---
-
-COPY public.habitaciones (id, tipo_id, numero, activa) FROM stdin;
-hab_103	tipo_normal	103	t
-hab_104	tipo_normal	104	t
-hab_105	tipo_normal	105	t
-hab_106	tipo_normal	106	t
-hab_107	tipo_normal	107	t
-hab_108	tipo_normal	108	t
-hab_109	tipo_normal	109	t
-hab_110	tipo_normal	110	t
-hab_201	tipo_executive	201	t
-hab_202	tipo_executive	202	t
-hab_203	tipo_executive	203	t
-hab_204	tipo_executive	204	t
-hab_205	tipo_executive	205	t
-hab_206	tipo_executive	206	t
-hab_207	tipo_executive	207	t
-hab_208	tipo_executive	208	t
-hab_209	tipo_executive	209	t
-hab_210	tipo_executive	210	t
-hab_301	tipo_vip	301	t
-hab_302	tipo_vip	302	t
-hab_303	tipo_vip	303	t
-hab_304	tipo_vip	304	t
-hab_305	tipo_vip	305	t
-hab_306	tipo_vip	306	t
-hab_307	tipo_vip	307	t
-hab_308	tipo_vip	308	t
-hab_309	tipo_vip	309	t
-hab_310	tipo_vip	310	t
-hab_401	tipo_luxury	401	t
-hab_402	tipo_luxury	402	t
-hab_403	tipo_luxury	403	t
-hab_404	tipo_luxury	404	t
-hab_405	tipo_luxury	405	t
-hab_406	tipo_luxury	406	t
-hab_407	tipo_luxury	407	t
-hab_408	tipo_luxury	408	t
-hab_409	tipo_luxury	409	t
-hab_410	tipo_luxury	410	t
-hab_501	tipo_connecting	501	t
-hab_502	tipo_connecting	502	t
-hab_503	tipo_connecting	503	t
-hab_504	tipo_connecting	504	t
-hab_505	tipo_connecting	505	t
-hab_506	tipo_connecting	506	t
-hab_507	tipo_connecting	507	t
-hab_508	tipo_connecting	508	t
-hab_509	tipo_connecting	509	t
-hab_510	tipo_connecting	510	t
-8b22d527-1188-4d94-9d9e-7d741c3498e2	tipo_luxury	1001	t
-hab_102	tipo_vip	102	t
-hab_101	tipo_normal	101	t
-\.
-
-
---
--- Data for Name: habitaciones_tipos; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
---
-
-COPY public.habitaciones_tipos (id, nombre, descripcion, aforo_maximo, precio_por_noche, activa) FROM stdin;
-tipo_executive	Executive	Habitación con espacio adicional y escritorio de trabajo. Ideal para viajes de negocios.	2	380000.00	t
-tipo_vip	VIP	Suite con amenidades premium y vista privilegiada. Incluye acceso a lounge VIP.	3	520000.00	t
-tipo_luxury	Luxury	Suite de máximo confort con sala privada y terraza. Experiencia de lujo con servicios personalizados.	4	700000.00	t
-tipo_connecting	Connecting	Habitaciones interconectadas perfectas para grupos familiares o que viajan juntos.	4	600000.00	t
-tipo_normal	Normallll	Habitación funcional y cómoda para estancias cortas. Incluye amenities básicos y Wi-Fi gratuito.	2	250000.00	t
-1a5fc0a9-1039-4318-8d24-b15fa8a4e5d3	nuevo	123	1	123.00	t
-\.
-
-
---
--- Data for Name: imagenes; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
---
-
-COPY public.imagenes (id, servicio_id, tipo_habitacion_id, url) FROM stdin;
-img_normal_1	\N	tipo_normal	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fsuite_normal.jpg?alt=media&token=028bd170-dcb7-4e49-a08b-55c834083ff3
-img_normal_2	\N	tipo_normal	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fba%C3%B1o_normal.jpg?alt=media&token=bcbadfca-0e07-482b-a084-94b0611dd94d
-img_executive_1	\N	tipo_executive	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fhabitacion_ejecutiva_cama.jpg?alt=media&token=441f9315-8097-4533-aac5-e830f76953f2
-img_executive_2	\N	tipo_executive	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fsuite_ejecutiva.jpg?alt=media&token=5d108710-8492-47b2-8773-ba0527dae9a7
-img_vip_1	\N	tipo_vip	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fhabitacion_lujo.jpg?alt=media&token=e613caac-19de-457e-948a-f47690690877
-img_vip_2	\N	tipo_vip	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fsuite-lujo.jpg?alt=media&token=19adcd3a-1327-402a-b145-6418b5d04316
-img_luxury_1	\N	tipo_luxury	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fsuite_vip.jpg?alt=media&token=5b69a74e-85b5-40eb-8956-84cc3e6e0343
-img_luxury_2	\N	tipo_luxury	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fsala_luxury.jpg?alt=media&token=c0b4544e-4f82-4c48-a22f-66ba7bcdb3a7
-img_spa_1	servicio_spa	\N	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fspa_2.jpg?alt=media&token=8a4ef544-440c-4e34-90e1-3f9bc2511b8f
-img_spa_2	servicio_spa	\N	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fspa_3.jpg?alt=media&token=7c2dc267-2927-4b32-8164-ce7b93f9b3bf
-img_trekking_1	servicio_trekking	\N	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Ftrecking.jpg?alt=media&token=0a5ca1f7-d034-4d91-a312-3715537a8eaa
-img_trekking_2	servicio_trekking	\N	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Ftrecking_2.jpeg?alt=media&token=edccf3d9-d809-4f0b-848c-a503adc1c233
-img_rest_1	servicio_restaurante	\N	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Frestaurante_2.jpg?alt=media&token=568ea8b9-ec34-4090-98b8-ba0df452765c
-img_rest_2	servicio_restaurante	\N	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Frestaurante_3.jpg?alt=media&token=26b988b8-9e7e-4f9d-9578-95ce6ccaac9d
-img_trans_1	servicio_transporte	\N	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Ftransporte_2.jpg?alt=media&token=01a46ff9-6aa6-4be2-92d4-eaaccbf2d765
-img_trans_2	servicio_transporte	\N	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Ftransporte_3.jpg?alt=media&token=3b80c248-104a-4792-bb0b-a105218889fb
-img_wifi_1	servicio_wifi	\N	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fcatacafe.jpg?alt=media&token=63d843d1-2633-4148-b46c-8a02cf4cad9a
-img_wifi_2	servicio_wifi	\N	https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fwifi_hotel2.jpg?alt=media&token=196af0e0-1e9d-4cdc-b2f9-9cb9d2d94242
-img_connecting_1	\N	tipo_connecting	https://www.hilton.com/im/en/NoHotel/15621541/1252-corp-connecting-rooms-ohw-room.jpg?impolicy=crop&cw=4500&ch=1250&gravity=NorthWest&xposition=0&yposition=875&rw=3840&rh=1068
-img_connecting_2	\N	tipo_connecting	https://img.lavdg.com/sc/7KboYBlOqMPLCeg3EDsGYC8ZaIo=/768x/2020/07/17/00121594983853338592141/Foto/pazo4.jpg
-\.
-
-
---
--- Data for Name: pagos; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
---
-
-COPY public.pagos (id, reserva_id, tipo, monto, fecha, metodo_pago, estado, concepto, registrado_por_empleado_id) FROM stdin;
-pay_0001	res_0001	anticipo	500000.00	2025-10-07 10:41:37.742121	TARJETA	pendiente	Abono inicial (pendiente por confirmar)	emp_001
-\.
-
-
---
--- Data for Name: reservas; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
---
-
-COPY public.reservas (id, codigo, cliente_id, fecha_creacion, estado, notas, creada_por_empleado_id) FROM stdin;
-res_0001	R-2025-0001	cli_001	2025-10-07 10:41:37.742121	pendiente	Reserva de 3 noches, tipo_normal	emp_001
-\.
-
-
---
--- Data for Name: reservas_servicios; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
---
-
-COPY public.reservas_servicios (id, reserva_id, servicio_id, fecha, hora_inicio, numero_personas, precio_por_persona, total_servicio, contratado_por_empleado_id) FROM stdin;
-rs_0001	res_0001	servicio_spa	2025-10-11	09:00:00	2	150000.00	300000.00	emp_002
-rs_0002	res_0001	servicio_transporte	2025-10-10	07:00:00	2	100000.00	200000.00	emp_002
-\.
-
-
---
--- Data for Name: resumen_pagos; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
---
-
-COPY public.resumen_pagos (reserva_id, total_habitaciones, total_servicios, total_reserva, total_pagado, saldo_pendiente, ultima_actualizacion) FROM stdin;
-res_0001	1500000.00	500000.00	2000000.00	0.00	2000000.00	2025-10-07 10:41:37.742121
-\.
-
-
---
--- Data for Name: servicio_disponibilidad; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
---
-
-COPY public.servicio_disponibilidad (id, servicio_id, fecha, hora_inicio, hora_fin, capacidad_disponible) FROM stdin;
-disp_spa_1	servicio_spa	2025-09-01	09:00:00	21:00:00	10
-disp_spa_2	servicio_spa	2025-09-02	09:00:00	21:00:00	10
-disp_trekking_1	servicio_trekking	2025-09-01	05:00:00	10:00:00	10
-disp_trekking_2	servicio_trekking	2025-09-02	05:00:00	10:00:00	10
-disp_rest_1	servicio_restaurante	2025-09-01	07:00:00	23:00:00	50
-disp_rest_2	servicio_restaurante	2025-09-02	07:00:00	23:00:00	50
-disp_trans_1	servicio_transporte	2025-09-01	00:00:00	23:59:59	3
-disp_trans_2	servicio_transporte	2025-09-02	00:00:00	23:59:59	3
-disp_wifi_1	servicio_wifi	2025-09-01	00:00:00	23:59:59	100
-disp_wifi_2	servicio_wifi	2025-09-02	00:00:00	23:59:59	100
-\.
-
-
---
--- Data for Name: servicios; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
---
-
-COPY public.servicios (id, nombre, descripcion, lugar, precio_por_persona, duracion_minutos, capacidad_maxima) FROM stdin;
-servicio_trekking	Trekking al amanecer	Panorámicas únicas y picnic gourmet. Caminatas ecológicas guiadas para disfrutar de la naturaleza al amanecer.	Punto de encuentro en el lobby del hotel	200000.00	240	10
-servicio_restaurante	Restaurante Gourmet	Gastronomía de autor con productos frescos y locales. Menús de temporada y maridajes seleccionados para una experiencia culinaria exclusiva.	Restaurante el gran cañón	0.00	0	50
-servicio_transporte	Transporte Privado	Traslados al aeropuerto y movilidad en vehículos de lujo con chofer privado disponible las 24 horas, garantizando seguridad y confort.	Punto de encuentro en el lobby	100000.00	0	3
-servicio_wifi	Wi-Fi & Cowork	Espacio premium de Wi-Fi y coworking, con conexión ultrarrápida y ambiente inspirador, disponible 24/7 para maximizar tu productividad.	Sala de eventos 3, 4 y 5	0.00	0	100
-servicio_spa	Spa de autor modi	Rituales con esencias locales, 60-120 min. Masajes, sauna y rituales holísticos que combinan técnicas ancestrales y modernas para revitalizar tu cuerpo y mente en un ambiente de serenidad absoluta.	Mantra SPA	150000.00	90	10
-152d903c-55e6-41ce-b47e-f652cc95f0be	nuevo	nuevo	nuevo	1000.00	60	2
-\.
-
-
---
--- Data for Name: usuarios; Type: TABLE DATA; Schema: public; Owner: samiLeMeteAlFront
---
-
-COPY public.usuarios (id, email, password_hash, rol) FROM stdin;
-7325d128-3b86-40fb-865c-4584b25cb2f9	juanfe@dropsy.com	1234	CLIENTE
-4564fe1b-2dd7-4e56-8b31-8f88a62fd632	angarita@lemeteaweb.puj	1234	ADMIN
-60fc894b-e09a-4265-b436-df53a490e2eb	samu@gmail.com	1234	CLIENTE
-0bf298eb-bc81-4938-ad2c-b7f96a13a105	nuevo@gmail.com	123	CLIENTE
-emp_001	recepcion1@hotel.com	1234	RECEPCIONISTA
-emp_002	recepcion2@hotel.com	1234	RECEPCIONISTA
-emp_003	chef1@hotel.com	1234	STAFF
-emp_004	chef2@hotel.com	1234	STAFF
-emp_005	camarera1@hotel.com	1234	STAFF
-emp_006	camarera2@hotel.com	1234	STAFF
-emp_007	gerente@hotel.com	1234	ADMIN
-emp_008	mantenimiento1@hotel.com	1234	STAFF
-cli_001	cliente1@hotel.com	1234	CLIENTE
-apitest-1759996794	apitest-1759996794@example.com	$2a$10$5WGBd3myCE6Q/WSeWJ1V5u3vZul.ZjH9Wn6y7xPT4LvMTGIr50dIS	CLIENTE
-apitest-1759996811	apitest-1759996811@example.com	$2a$10$QxbFNNaAy8BjqYempL7YPeFGhsN6cEJNmEOGkuxaxIZrStXOxzqPy	CLIENTE
-apitest-1759998158	apitest-1759998158@example.com	$2a$10$PCyJQYmmTlOcl6gCksTLfuCraILo9jA.lPZY6ebtlLqIgsyn0n02u	CLIENTE
-apitest-1759998208	apitest-1759998208@example.com	$2a$10$XSGIUMj1t.P0LfDHjftMe..A6cw5QotbK.1m9EEoHKftKgXhDjFdS	CLIENTE
-apitest-1759998576	apitest-1759998576@example.com	$2a$10$rSj3lxAXrvXPV7XarfioGepDPUaHgTQ/U/bXy7NkaKkn1Qbm.xOEK	CLIENTE
-apitest-1759998594	apitest-1759998594@example.com	$2a$10$YGu7EIaqOgRB/fIz2ogiJOwBhjFWaXIJKnmwNNRFvLw9VnEKpWN/u	CLIENTE
-\.
-
-
---
--- Name: clientes_perfil clientes_perfil_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.clientes_perfil
-    ADD CONSTRAINT clientes_perfil_pkey PRIMARY KEY (usuario_id);
-
-
---
--- Name: empleados_perfil empleados_perfil_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.empleados_perfil
-    ADD CONSTRAINT empleados_perfil_pkey PRIMARY KEY (usuario_id);
-
-
---
--- Name: estancias estancias_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.estancias
-    ADD CONSTRAINT estancias_pkey PRIMARY KEY (id);
-
-
---
--- Name: habitaciones habitaciones_numero_key; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.habitaciones
-    ADD CONSTRAINT habitaciones_numero_key UNIQUE (numero);
-
-
---
--- Name: habitaciones habitaciones_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.habitaciones
-    ADD CONSTRAINT habitaciones_pkey PRIMARY KEY (id);
-
-
---
--- Name: habitaciones_tipos habitaciones_tipos_nombre_key; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.habitaciones_tipos
-    ADD CONSTRAINT habitaciones_tipos_nombre_key UNIQUE (nombre);
-
-
---
--- Name: habitaciones_tipos habitaciones_tipos_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.habitaciones_tipos
-    ADD CONSTRAINT habitaciones_tipos_pkey PRIMARY KEY (id);
-
-
---
--- Name: imagenes imagenes_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.imagenes
-    ADD CONSTRAINT imagenes_pkey PRIMARY KEY (id);
-
-
---
--- Name: pagos pagos_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.pagos
-    ADD CONSTRAINT pagos_pkey PRIMARY KEY (id);
-
-
---
--- Name: reservas reservas_codigo_key; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.reservas
-    ADD CONSTRAINT reservas_codigo_key UNIQUE (codigo);
-
-
---
--- Name: reservas reservas_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.reservas
-    ADD CONSTRAINT reservas_pkey PRIMARY KEY (id);
-
-
---
--- Name: reservas_servicios reservas_servicios_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.reservas_servicios
-    ADD CONSTRAINT reservas_servicios_pkey PRIMARY KEY (id);
-
-
---
--- Name: resumen_pagos resumen_pagos_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.resumen_pagos
-    ADD CONSTRAINT resumen_pagos_pkey PRIMARY KEY (reserva_id);
-
-
---
--- Name: servicio_disponibilidad servicio_disponibilidad_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.servicio_disponibilidad
-    ADD CONSTRAINT servicio_disponibilidad_pkey PRIMARY KEY (id);
-
-
---
--- Name: servicio_disponibilidad servicio_disponibilidad_servicio_id_fecha_hora_inicio_key; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.servicio_disponibilidad
-    ADD CONSTRAINT servicio_disponibilidad_servicio_id_fecha_hora_inicio_key UNIQUE (servicio_id, fecha, hora_inicio);
-
-
---
--- Name: servicios servicios_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.servicios
-    ADD CONSTRAINT servicios_pkey PRIMARY KEY (id);
-
-
---
--- Name: servicio_disponibilidad ukod1sk9uetqx1o4lywc5yvfqh8; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.servicio_disponibilidad
-    ADD CONSTRAINT ukod1sk9uetqx1o4lywc5yvfqh8 UNIQUE (servicio_id, fecha, hora_inicio);
-
-
---
--- Name: usuarios usuarios_email_key; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.usuarios
-    ADD CONSTRAINT usuarios_email_key UNIQUE (email);
-
-
---
--- Name: usuarios usuarios_pkey; Type: CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.usuarios
-    ADD CONSTRAINT usuarios_pkey PRIMARY KEY (id);
-
-
---
--- Name: idx_estancias_asignada_por; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_estancias_asignada_por ON public.estancias USING btree (asignada_por_empleado_id);
-
-
---
--- Name: idx_estancias_checkin_por; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_estancias_checkin_por ON public.estancias USING btree (checkin_por_empleado_id);
-
-
---
--- Name: idx_estancias_checkout_por; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_estancias_checkout_por ON public.estancias USING btree (checkout_por_empleado_id);
-
-
---
--- Name: idx_estancias_fechas; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_estancias_fechas ON public.estancias USING btree (check_in, check_out);
-
-
---
--- Name: idx_estancias_tipo; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_estancias_tipo ON public.estancias USING btree (tipo_habitacion_id);
-
-
---
--- Name: idx_habitaciones_numero; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_habitaciones_numero ON public.habitaciones USING btree (numero);
-
-
---
--- Name: idx_habitaciones_tipo; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_habitaciones_tipo ON public.habitaciones USING btree (tipo_id);
-
-
---
--- Name: idx_pagos_estado; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_pagos_estado ON public.pagos USING btree (estado);
-
-
---
--- Name: idx_pagos_registrado_por; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_pagos_registrado_por ON public.pagos USING btree (registrado_por_empleado_id);
-
-
---
--- Name: idx_pagos_reserva; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_pagos_reserva ON public.pagos USING btree (reserva_id);
-
-
---
--- Name: idx_reservas_cliente; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_reservas_cliente ON public.reservas USING btree (cliente_id);
-
-
---
--- Name: idx_reservas_codigo; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_reservas_codigo ON public.reservas USING btree (codigo);
-
-
---
--- Name: idx_reservas_creada_por; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_reservas_creada_por ON public.reservas USING btree (creada_por_empleado_id);
-
-
---
--- Name: idx_reservas_estado; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_reservas_estado ON public.reservas USING btree (estado);
-
-
---
--- Name: idx_reservas_servicios_fecha; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_reservas_servicios_fecha ON public.reservas_servicios USING btree (fecha, hora_inicio);
-
-
---
--- Name: idx_resumen_pagos_actualizacion; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_resumen_pagos_actualizacion ON public.resumen_pagos USING btree (ultima_actualizacion);
-
-
---
--- Name: idx_resumen_pagos_saldo; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_resumen_pagos_saldo ON public.resumen_pagos USING btree (saldo_pendiente);
-
-
---
--- Name: idx_rs_contratado_por; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_rs_contratado_por ON public.reservas_servicios USING btree (contratado_por_empleado_id);
-
-
---
--- Name: idx_servicio_disponibilidad_fecha; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_servicio_disponibilidad_fecha ON public.servicio_disponibilidad USING btree (fecha, hora_inicio);
-
-
---
--- Name: idx_usuarios_email; Type: INDEX; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE INDEX idx_usuarios_email ON public.usuarios USING btree (email);
-
-
---
--- Name: estancias trigger_actualizar_resumen_estancias; Type: TRIGGER; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE TRIGGER trigger_actualizar_resumen_estancias AFTER INSERT OR DELETE OR UPDATE ON public.estancias FOR EACH ROW EXECUTE FUNCTION public.actualizar_resumen_despues_cambio();
-
-
---
--- Name: pagos trigger_actualizar_resumen_pagos; Type: TRIGGER; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE TRIGGER trigger_actualizar_resumen_pagos AFTER INSERT OR DELETE OR UPDATE ON public.pagos FOR EACH ROW EXECUTE FUNCTION public.actualizar_resumen_despues_cambio();
-
-
---
--- Name: reservas trigger_actualizar_resumen_reservas; Type: TRIGGER; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE TRIGGER trigger_actualizar_resumen_reservas AFTER INSERT OR DELETE OR UPDATE ON public.reservas FOR EACH ROW EXECUTE FUNCTION public.actualizar_resumen_despues_cambio();
-
-
---
--- Name: reservas_servicios trigger_actualizar_resumen_reservas_servicios; Type: TRIGGER; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE TRIGGER trigger_actualizar_resumen_reservas_servicios AFTER INSERT OR DELETE OR UPDATE ON public.reservas_servicios FOR EACH ROW EXECUTE FUNCTION public.actualizar_resumen_despues_cambio();
-
-
---
--- Name: reservas trigger_asignar_habitacion; Type: TRIGGER; Schema: public; Owner: samiLeMeteAlFront
---
-
-CREATE TRIGGER trigger_asignar_habitacion AFTER UPDATE ON public.reservas FOR EACH ROW EXECUTE FUNCTION public.asignar_habitacion_al_confirmar();
-
-
---
--- Name: clientes_perfil clientes_perfil_usuario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.clientes_perfil
-    ADD CONSTRAINT clientes_perfil_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
-
-
---
--- Name: empleados_perfil empleados_perfil_usuario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.empleados_perfil
-    ADD CONSTRAINT empleados_perfil_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
-
-
---
--- Name: estancias estancias_asignada_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.estancias
-    ADD CONSTRAINT estancias_asignada_por_fk FOREIGN KEY (asignada_por_empleado_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
-
-
---
--- Name: estancias estancias_checkin_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.estancias
-    ADD CONSTRAINT estancias_checkin_por_fk FOREIGN KEY (checkin_por_empleado_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
-
-
---
--- Name: estancias estancias_checkout_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.estancias
-    ADD CONSTRAINT estancias_checkout_por_fk FOREIGN KEY (checkout_por_empleado_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
-
-
---
--- Name: estancias estancias_habitacion_asignada_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.estancias
-    ADD CONSTRAINT estancias_habitacion_asignada_fkey FOREIGN KEY (habitacion_asignada) REFERENCES public.habitaciones(id);
-
-
---
--- Name: estancias estancias_reserva_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.estancias
-    ADD CONSTRAINT estancias_reserva_id_fkey FOREIGN KEY (reserva_id) REFERENCES public.reservas(id) ON DELETE CASCADE;
-
-
---
--- Name: estancias estancias_tipo_habitacion_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.estancias
-    ADD CONSTRAINT estancias_tipo_habitacion_id_fkey FOREIGN KEY (tipo_habitacion_id) REFERENCES public.habitaciones_tipos(id);
-
-
---
--- Name: habitaciones habitaciones_tipo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.habitaciones
-    ADD CONSTRAINT habitaciones_tipo_id_fkey FOREIGN KEY (tipo_id) REFERENCES public.habitaciones_tipos(id) ON DELETE CASCADE;
-
-
---
--- Name: imagenes imagenes_servicio_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.imagenes
-    ADD CONSTRAINT imagenes_servicio_id_fkey FOREIGN KEY (servicio_id) REFERENCES public.servicios(id) ON DELETE CASCADE;
-
-
---
--- Name: imagenes imagenes_tipo_habitacion_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.imagenes
-    ADD CONSTRAINT imagenes_tipo_habitacion_id_fkey FOREIGN KEY (tipo_habitacion_id) REFERENCES public.habitaciones_tipos(id) ON DELETE CASCADE;
-
-
---
--- Name: pagos pagos_registrado_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.pagos
-    ADD CONSTRAINT pagos_registrado_por_fk FOREIGN KEY (registrado_por_empleado_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
-
-
---
--- Name: pagos pagos_reserva_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.pagos
-    ADD CONSTRAINT pagos_reserva_id_fkey FOREIGN KEY (reserva_id) REFERENCES public.reservas(id) ON DELETE CASCADE;
-
-
---
--- Name: reservas reservas_cliente_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.reservas
-    ADD CONSTRAINT reservas_cliente_id_fkey FOREIGN KEY (cliente_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
-
-
---
--- Name: reservas reservas_creada_por_empleado_fk; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.reservas
-    ADD CONSTRAINT reservas_creada_por_empleado_fk FOREIGN KEY (creada_por_empleado_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
-
-
---
--- Name: reservas_servicios reservas_servicios_reserva_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.reservas_servicios
-    ADD CONSTRAINT reservas_servicios_reserva_id_fkey FOREIGN KEY (reserva_id) REFERENCES public.reservas(id) ON DELETE CASCADE;
-
-
---
--- Name: reservas_servicios reservas_servicios_servicio_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.reservas_servicios
-    ADD CONSTRAINT reservas_servicios_servicio_id_fkey FOREIGN KEY (servicio_id) REFERENCES public.servicios(id);
-
-
---
--- Name: resumen_pagos resumen_pagos_reserva_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.resumen_pagos
-    ADD CONSTRAINT resumen_pagos_reserva_id_fkey FOREIGN KEY (reserva_id) REFERENCES public.reservas(id) ON DELETE CASCADE;
-
-
---
--- Name: reservas_servicios rs_contratado_por_fk; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.reservas_servicios
-    ADD CONSTRAINT rs_contratado_por_fk FOREIGN KEY (contratado_por_empleado_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
-
-
---
--- Name: servicio_disponibilidad servicio_disponibilidad_servicio_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: samiLeMeteAlFront
---
-
-ALTER TABLE ONLY public.servicio_disponibilidad
-    ADD CONSTRAINT servicio_disponibilidad_servicio_id_fkey FOREIGN KEY (servicio_id) REFERENCES public.servicios(id) ON DELETE CASCADE;
-
-
---
--- PostgreSQL database dump complete
---
-
-\unrestrict Zpg7DNgg8493TJpnr6ut6GN35bf21rgIhhdmpaAeQZwXywfX8g6lLLMmD841GOz
-
+ALTER TABLE public.estancias OWNER TO "samiLeMeteAlFront";
+
+
+CREATE TABLE IF NOT EXISTS public.pagos (
+    id            VARCHAR(36) PRIMARY KEY,
+    reserva_id    VARCHAR(36) NOT NULL,
+    tipo          VARCHAR(20) NOT NULL,
+    monto         NUMERIC(12,2) NOT NULL,
+    fecha         TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    metodo_pago   VARCHAR(50),
+    estado        VARCHAR(20) NOT NULL DEFAULT 'COMPLETADO',
+    concepto      VARCHAR(200),
+    CONSTRAINT fk_pagos_reserva
+        FOREIGN KEY (reserva_id) REFERENCES public.reservas(id),
+    CONSTRAINT check_monto_positivo CHECK (monto > 0),
+    CONSTRAINT check_tipo_valido CHECK (tipo IN ('ANTICIPO','PAGO_PARCIAL','PAGO_COMPLETO','REEMBOLSO')),
+    CONSTRAINT check_estado_pago_valido CHECK (estado IN ('COMPLETADO','FALLIDO','REEMBOLSADO'))
+);
+
+ALTER TABLE public.pagos OWNER TO "samiLeMeteAlFront";
+
+
+
+CREATE TABLE IF NOT EXISTS public.reservas_servicios (
+    id                    VARCHAR(36) PRIMARY KEY,
+    reserva_id            VARCHAR(36) NOT NULL,
+    servicio_id           VARCHAR(36) NOT NULL,
+    fecha                 DATE NOT NULL,
+    hora_inicio           TIME WITHOUT TIME ZONE NOT NULL,
+    numero_personas       INTEGER NOT NULL,
+    precio_por_persona    NUMERIC(12,2) NOT NULL,
+    total_servicio        NUMERIC(12,2) NOT NULL,
+    contratado_por_empleado_id VARCHAR(36),
+
+    CONSTRAINT fk_rs_reserva    FOREIGN KEY (reserva_id)  REFERENCES public.reservas(id),
+    CONSTRAINT fk_rs_servicio   FOREIGN KEY (servicio_id) REFERENCES public.servicios(id),
+    CONSTRAINT fk_rs_empleado   FOREIGN KEY (contratado_por_empleado_id) REFERENCES public.usuarios(id),
+
+    CONSTRAINT check_personas_positivo CHECK (numero_personas > 0),
+    CONSTRAINT check_precio_positivo   CHECK (precio_por_persona >= 0),
+    CONSTRAINT check_total_positivo    CHECK (total_servicio >= 0)
+);
+
+ALTER TABLE public.reservas_servicios OWNER TO "samiLeMeteAlFront";
+
+CREATE TABLE IF NOT EXISTS public.resumen_pagos (
+    reserva_id         VARCHAR(36) PRIMARY KEY,
+    total_habitaciones NUMERIC(12,2) NOT NULL DEFAULT 0,
+    total_servicios    NUMERIC(12,2) NOT NULL DEFAULT 0,
+    total_reserva      NUMERIC(12,2) NOT NULL DEFAULT 0,
+    total_pagado       NUMERIC(12,2) NOT NULL DEFAULT 0,
+    saldo_pendiente    NUMERIC(12,2) NOT NULL DEFAULT 0,
+    ultima_actualizacion TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_resumen_pagos_reserva
+        FOREIGN KEY (reserva_id) REFERENCES public.reservas(id),
+    CONSTRAINT check_no_negativos_resumen CHECK (
+        total_habitaciones >= 0 AND
+        total_servicios    >= 0 AND
+        total_reserva      >= 0 AND
+        total_pagado       >= 0 AND
+        saldo_pendiente    >= 0
+    )
+);
+
+ALTER TABLE public.resumen_pagos OWNER TO "samiLeMeteAlFront";
+
+CREATE TABLE IF NOT EXISTS public.servicio_disponibilidad (
+    id                    VARCHAR(36) PRIMARY KEY,
+    servicio_id           VARCHAR(36) NOT NULL,
+    fecha                 DATE NOT NULL,
+    hora_inicio           TIME WITHOUT TIME ZONE NOT NULL,
+    hora_fin              TIME WITHOUT TIME ZONE NOT NULL,
+    capacidad_disponible  INTEGER NOT NULL,
+
+    CONSTRAINT fk_servicio_disp_servicio
+        FOREIGN KEY (servicio_id) REFERENCES public.servicios(id),
+
+    CONSTRAINT check_capacidad_valida CHECK (capacidad_disponible >= 0),
+    CONSTRAINT check_horas_validas    CHECK (hora_fin > hora_inicio),
+
+    CONSTRAINT ux_servicio_disp UNIQUE (servicio_id, fecha, hora_inicio)
+);
+
+ALTER TABLE public.servicio_disponibilidad OWNER TO "samiLeMeteAlFront";
+
+
+
+CREATE TABLE IF NOT EXISTS public.imagenes (
+    id                  VARCHAR(36) PRIMARY KEY,
+    servicio_id         VARCHAR(36),
+    tipo_habitacion_id  VARCHAR(36),
+    url                 VARCHAR(500) NOT NULL,
+
+    CONSTRAINT fk_imagenes_servicio
+        FOREIGN KEY (servicio_id) REFERENCES public.servicios(id),
+    CONSTRAINT fk_imagenes_tipo_hab
+        FOREIGN KEY (tipo_habitacion_id) REFERENCES public.habitaciones_tipos(id),
+
+    -- exactamente uno de los dos debe venir (XOR)
+    CONSTRAINT check_imagen_destino CHECK (
+        (servicio_id IS NOT NULL AND tipo_habitacion_id IS NULL) OR
+        (servicio_id IS NULL AND tipo_habitacion_id IS NOT NULL)
+    )
+);
+
+ALTER TABLE public.imagenes OWNER TO "samiLeMeteAlFront";
+
+-- DATOS
+INSERT INTO public.usuarios (id, email, password_hash, rol) VALUES
+('7325d128-3b86-40fb-865c-4584b25cb2f9', 'juanfe@dropsy.com', '1234', 'CLIENTE'),
+('4564fe1b-2dd7-4e56-8b31-8f88a62fd632', 'angarita@lemeteaweb.puj', '1234', 'ADMIN'),
+('60fc894b-e09a-4265-b436-df53a490e2eb', 'samu@gmail.com', '1234', 'CLIENTE'),
+('0bf298eb-bc81-4938-ad2c-b7f96a13a105', 'nuevo@gmail.com', '123', 'CLIENTE'),
+('emp_001', 'recepcion1@hotel.com', '1234', 'RECEPCIONISTA'),
+('emp_002', 'recepcion2@hotel.com', '1234', 'RECEPCIONISTA'),
+('emp_003', 'chef1@hotel.com', '1234', 'STAFF'),
+('emp_004', 'chef2@hotel.com', '1234', 'STAFF'),
+('emp_005', 'camarera1@hotel.com', '1234', 'STAFF'),
+('emp_006', 'camarera2@hotel.com', '1234', 'STAFF'),
+('emp_007', 'gerente@hotel.com', '1234', 'ADMIN'),
+('emp_008', 'mantenimiento1@hotel.com', '1234', 'STAFF'),
+('cli_001', 'cliente1@hotel.com', '1234', 'CLIENTE')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.clientes_perfil (usuario_id, nombre_completo, telefono, fecha_registro, version) VALUES
+('7325d128-3b86-40fb-865c-4584b25cb2f9', 'Aguirre', '234567', '2025-09-08 22:51:27.58619', NULL),
+('60fc894b-e09a-4265-b436-df53a490e2eb', 'samuel campos', '321', '2025-09-09 10:03:56.095483', NULL),
+('0bf298eb-bc81-4938-ad2c-b7f96a13a105', 'nuevo', '3002112575', '2025-09-09 10:57:58.800666', NULL),
+('cli_001', 'Carlos Pérez', '3000000000', '2025-10-07 10:41:37.742121', NULL)
+ON CONFLICT (usuario_id) DO NOTHING;
+
+INSERT INTO public.empleados_perfil (usuario_id, nombre_completo, telefono, cargo, salario, fecha_contratacion, version) VALUES
+('emp_001', 'María García', '3001234567', 'Recepcionista', 1800000.00, '2023-05-10', NULL),
+('emp_002', 'Hania Campos', '3019876543', 'Recepcionista', 1750000.00, '2023-01-15', NULL),
+('emp_003', 'Santiago Fortich', '3204567890', 'Chef Ejecutivo', 2800000.00, '2021-08-20', NULL),
+('emp_004', 'Andrés Gómez', '3107654321', 'Camarero', 1500000.00, '2022-11-01', NULL),
+('emp_005', 'Karen Manuela', '3152345678', 'Camarera', 1500000.00, '2023-06-12', NULL),
+('emp_006', 'Paola Aguilera', '3186543210', 'Sous Chef', 2300000.00, '2023-09-01', NULL),
+('emp_007', 'Sebastian Angarita', '3205558899', 'Gerente General', 4200000.00, '2020-03-05', NULL),
+('emp_008', 'Camilo Triana', '3114455667', 'Mantenimiento', 1600000.00, '2022-02-17', NULL)
+ON CONFLICT (usuario_id) DO NOTHING;
+
+INSERT INTO public.habitaciones_tipos (id, nombre, descripcion, aforo_maximo, precio_por_noche, activa) VALUES
+('tipo_normal', 'Normal', 'Habitación funcional y cómoda para estancias cortas. Incluye amenities básicos y Wi-Fi gratuito.', 2, 250000.00, true),
+('tipo_executive', 'Executive', 'Habitación con espacio adicional y escritorio de trabajo. Ideal para viajes de negocios.', 2, 380000.00, true),
+('tipo_vip', 'VIP', 'Suite con amenidades premium y vista privilegiada. Incluye acceso a lounge VIP.', 3, 520000.00, true),
+('tipo_luxury', 'Luxury', 'Suite de máximo confort con sala privada y terraza. Experiencia de lujo con servicios personalizados.', 4, 700000.00, true),
+('tipo_connecting', 'Connecting', 'Habitaciones interconectadas perfectas para grupos familiares o que viajan juntos.', 4, 600000.00, true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.habitaciones (id, tipo_id, numero, activa) VALUES
+('hab_101', 'tipo_normal', 101, true),
+('hab_102', 'tipo_normal', 102, true),
+('hab_103', 'tipo_normal', 103, true),
+('hab_104', 'tipo_normal', 104, true),
+('hab_105', 'tipo_normal', 105, true),
+('hab_106', 'tipo_normal', 106, true),
+('hab_107', 'tipo_normal', 107, true),
+('hab_108', 'tipo_normal', 108, true),
+('hab_109', 'tipo_normal', 109, true),
+('hab_110', 'tipo_normal', 110, true),
+('hab_201', 'tipo_executive', 201, true),
+('hab_202', 'tipo_executive', 202, true),
+('hab_203', 'tipo_executive', 203, true),
+('hab_204', 'tipo_executive', 204, true),
+('hab_205', 'tipo_executive', 205, true),
+('hab_206', 'tipo_executive', 206, true),
+('hab_207', 'tipo_executive', 207, true),
+('hab_208', 'tipo_executive', 208, true),
+('hab_209', 'tipo_executive', 209, true),
+('hab_210', 'tipo_executive', 210, true),
+('hab_301', 'tipo_vip', 301, true),
+('hab_302', 'tipo_vip', 302, true),
+('hab_303', 'tipo_vip', 303, true),
+('hab_304', 'tipo_vip', 304, true),
+('hab_305', 'tipo_vip', 305, true),
+('hab_306', 'tipo_vip', 306, true),
+('hab_307', 'tipo_vip', 307, true),
+('hab_308', 'tipo_vip', 308, true),
+('hab_309', 'tipo_vip', 309, true),
+('hab_310', 'tipo_vip', 310, true),
+('hab_401', 'tipo_luxury', 401, true),
+('hab_402', 'tipo_luxury', 402, true),
+('hab_403', 'tipo_luxury', 403, true),
+('hab_404', 'tipo_luxury', 404, true),
+('hab_405', 'tipo_luxury', 405, true),
+('hab_406', 'tipo_luxury', 406, true),
+('hab_407', 'tipo_luxury', 407, true),
+('hab_408', 'tipo_luxury', 408, true),
+('hab_409', 'tipo_luxury', 409, true),
+('hab_410', 'tipo_luxury', 410, true),
+('hab_501', 'tipo_connecting', 501, true),
+('hab_502', 'tipo_connecting', 502, true),
+('hab_503', 'tipo_connecting', 503, true),
+('hab_504', 'tipo_connecting', 504, true),
+('hab_505', 'tipo_connecting', 505, true),
+('hab_506', 'tipo_connecting', 506, true),
+('hab_507', 'tipo_connecting', 507, true),
+('hab_508', 'tipo_connecting', 508, true),
+('hab_509', 'tipo_connecting', 509, true),
+('hab_510', 'tipo_connecting', 510, true)
+ON CONFLICT (numero) DO NOTHING;
+
+INSERT INTO public.servicios (id, nombre, descripcion, lugar, precio_por_persona, duracion_minutos, capacidad_maxima) VALUES
+('servicio_spa', 'Spa de autor', 'Rituales con esencias locales, 60-120 min. Masajes, sauna y rituales holísticos que combinan técnicas ancestrales y modernas para revitalizar tu cuerpo y mente en un ambiente de serenidad absoluta.', 'Mantra SPA', 150000.00, 90, 10),
+('servicio_trekking', 'Trekking al amanecer', 'Panorámicas únicas y picnic gourmet. Caminatas ecológicas guiadas para disfrutar de la naturaleza al amanecer.', 'Punto de encuentro en el lobby del hotel', 200000.00, 240, 10),
+('servicio_restaurante', 'Restaurante Gourmet', 'Gastronomía de autor con productos frescos y locales. Menús de temporada y maridajes seleccionados para una experiencia culinaria exclusiva.', 'Restaurante el gran cañón', 90.00, 90, 50),
+('servicio_transporte', 'Transporte Privado', 'Traslados al aeropuerto y movilidad en vehículos de lujo con chofer privado disponible las 24 horas, garantizando seguridad y confort.', 'Punto de encuentro en el lobby', 100000.00, 70, 3),
+('servicio_wifi', 'Wi-Fi & Cowork', 'Espacio premium de Wi-Fi y coworking, con conexión ultrarrápida y ambiente inspirador, disponible 24/7 para maximizar tu productividad.', 'Sala de eventos 3, 4 y 5', 30.00, 10, 100)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.imagenes (id, servicio_id, tipo_habitacion_id, url) VALUES
+('img_normal_1', NULL, 'tipo_normal', 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fsuite_normal.jpg?alt=media&token=028bd170-dcb7-4e49-a08b-55c834083ff3'),
+('img_normal_2', NULL, 'tipo_normal', 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fba%C3%B1o_normal.jpg?alt=media&token=bcbadfca-0e07-482b-a084-94b0611dd94d'),
+('img_executive_1', NULL, 'tipo_executive', 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fhabitacion_ejecutiva_cama.jpg?alt=media&token=441f9315-8097-4533-aac5-e830f76953f2'),
+('img_executive_2', NULL, 'tipo_executive', 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fsuite_ejecutiva.jpg?alt=media&token=5d108710-8492-47b2-8773-ba0527dae9a7'),
+('img_vip_1', NULL, 'tipo_vip', 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fhabitacion_lujo.jpg?alt=media&token=e613caac-19de-457e-948a-f47690690877'),
+('img_vip_2', NULL, 'tipo_vip', 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fsuite-lujo.jpg?alt=media&token=19adcd3a-1327-402a-b145-6418b5d04316'),
+('img_luxury_1', NULL, 'tipo_luxury', 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fsuite_vip.jpg?alt=media&token=5b69a74e-85b5-40eb-8956-84cc3e6e0343'),
+('img_luxury_2', NULL, 'tipo_luxury', 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fsala_luxury.jpg?alt=media&token=c0b4544e-4f82-4c48-a22f-66ba7bcdb3a7'),
+('img_spa_1', 'servicio_spa', NULL, 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fspa_2.jpg?alt=media&token=8a4ef544-440c-4e34-90e1-3f9bc2511b8f'),
+('img_spa_2', 'servicio_spa', NULL, 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fspa_3.jpg?alt=media&token=7c2dc267-2927-4b32-8164-ce7b93f9b3bf'),
+('img_trekking_1', 'servicio_trekking', NULL, 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Ftrecking.jpg?alt=media&token=0a5ca1f7-d034-4d91-a312-3715537a8eaa'),
+('img_trekking_2', 'servicio_trekking', NULL, 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Ftrecking_2.jpeg?alt=media&token=edccf3d9-d809-4f0b-848c-a503adc1c233'),
+('img_rest_1', 'servicio_restaurante', NULL, 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Frestaurante_2.jpg?alt=media&token=568ea8b9-ec34-4090-98b8-ba0df452765c'),
+('img_rest_2', 'servicio_restaurante', NULL, 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Frestaurante_3.jpg?alt=media&token=26b988b8-9e7e-4f9d-9578-95ce6ccaac9d'),
+('img_trans_1', 'servicio_transporte', NULL, 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Ftransporte_2.jpg?alt=media&token=01a46ff9-6aa6-4be2-92d4-eaaccbf2d765'),
+('img_trans_2', 'servicio_transporte', NULL, 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Ftransporte_3.jpg?alt=media&token=3b80c248-104a-4792-bb0b-a105218889fb'),
+('img_wifi_1', 'servicio_wifi', NULL, 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fcatacafe.jpg?alt=media&token=63d843d1-2633-4148-b46c-8a02cf4cad9a'),
+('img_wifi_2', 'servicio_wifi', NULL, 'https://firebasestorage.googleapis.com/v0/b/lifsecback-0.firebasestorage.app/o/aponia_images%2Fwifi_hotel2.jpg?alt=media&token=196af0e0-1e9d-4cdc-b2f9-9cb9d2d94242'),
+('img_connecting_1', NULL, 'tipo_connecting', 'https://www.hilton.com/im/en/NoHotel/15621541/1252-corp-connecting-rooms-ohw-room.jpg?impolicy=crop&cw=4500&ch=1250&gravity=NorthWest&xposition=0&yposition=875&rw=3840&rh=1068'),
+('img_connecting_2', NULL, 'tipo_connecting', 'https://img.lavdg.com/sc/7KboYBlOqMPLCeg3EDsGYC8ZaIo=/768x/2020/07/17/00121594983853338592141/Foto/pazo4.jpg')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.servicio_disponibilidad (id, servicio_id, fecha, hora_inicio, hora_fin, capacidad_disponible) VALUES
+('disp_spa_1', 'servicio_spa', '2025-09-01', '09:00:00', '21:00:00', 10),
+('disp_spa_2', 'servicio_spa', '2025-09-02', '09:00:00', '21:00:00', 10),
+('disp_trekking_1', 'servicio_trekking', '2025-09-01', '05:00:00', '10:00:00', 10),
+('disp_trekking_2', 'servicio_trekking', '2025-09-02', '05:00:00', '10:00:00', 10),
+('disp_rest_1', 'servicio_restaurante', '2025-09-01', '07:00:00', '23:00:00', 50),
+('disp_rest_2', 'servicio_restaurante', '2025-09-02', '07:00:00', '23:00:00', 50),
+('disp_trans_1', 'servicio_transporte', '2025-09-01', '00:00:00', '23:59:59', 3),
+('disp_trans_2', 'servicio_transporte', '2025-09-02', '00:00:00', '23:59:59', 3),
+('disp_wifi_1', 'servicio_wifi', '2025-09-01', '00:00:00', '23:59:59', 100),
+('disp_wifi_2', 'servicio_wifi', '2025-09-02', '00:00:00', '23:59:59', 100)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.reservas (id, codigo, cliente_id, fecha_creacion, estado, notas) VALUES
+('res_0001', 'R-2025-0001', 'cli_001', '2025-10-07 10:41:37.742121', 'CONFIRMADA', 'Reserva de 3 noches, tipo_normal')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.estancias (id, reserva_id, tipo_habitacion_id, check_in, check_out, entrada, salida, numero_huespedes, precio_por_noche, total_estadia, habitacion_asignada) VALUES
+('est_0001', 'res_0001', 'tipo_normal', false, false, '2025-10-10', '2025-10-13', 2, 250000.00, 750000.00, 'hab_101')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.reservas_servicios (id, reserva_id, servicio_id, fecha, hora_inicio, numero_personas, precio_por_persona, total_servicio, contratado_por_empleado_id) VALUES
+('rs_0001', 'res_0001', 'servicio_spa', '2025-10-11', '09:00:00', 2, 150000.00, 300000.00, 'emp_002'),
+('rs_0002', 'res_0001', 'servicio_transporte', '2025-10-10', '07:00:00', 2, 100000.00, 200000.00, 'emp_002')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.pagos (id, reserva_id, tipo, monto, fecha, metodo_pago, estado, concepto) VALUES
+('pay_0001', 'res_0001', 'ANTICIPO', 500000.00, '2025-10-07 10:41:37.742121', 'TARJETA', 'COMPLETADO', 'Abono inicial')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.resumen_pagos (reserva_id, total_habitaciones, total_servicios, total_reserva, total_pagado, saldo_pendiente, ultima_actualizacion) VALUES
+('res_0001', 750000.00, 500000.00, 1250000.00, 500000.00, 750000.00, '2025-10-07 10:41:37.742121')
+ON CONFLICT (reserva_id) DO NOTHING;
+
+-- ÍNDICES
+CREATE INDEX IF NOT EXISTS idx_estancias_fechas ON public.estancias USING btree (entrada, salida);
+CREATE INDEX IF NOT EXISTS idx_estancias_habitacion_fechas ON public.estancias USING btree (habitacion_asignada, entrada, salida);
+CREATE INDEX IF NOT EXISTS idx_estancias_tipo ON public.estancias USING btree (tipo_habitacion_id);
+CREATE INDEX IF NOT EXISTS idx_habitaciones_numero ON public.habitaciones USING btree (numero);
+CREATE INDEX IF NOT EXISTS idx_habitaciones_tipo ON public.habitaciones USING btree (tipo_id);
+CREATE INDEX IF NOT EXISTS idx_habitaciones_tipo_activa ON public.habitaciones USING btree (tipo_id, activa);
+CREATE INDEX IF NOT EXISTS idx_pagos_estado ON public.pagos USING btree (estado);
+CREATE INDEX IF NOT EXISTS idx_pagos_reserva ON public.pagos USING btree (reserva_id);
+CREATE INDEX IF NOT EXISTS idx_reservas_cliente ON public.reservas USING btree (cliente_id);
+CREATE INDEX IF NOT EXISTS idx_reservas_codigo ON public.reservas USING btree (codigo);
+CREATE INDEX IF NOT EXISTS idx_reservas_estado ON public.reservas USING btree (estado);
+CREATE INDEX IF NOT EXISTS idx_reservas_servicios_fecha ON public.reservas_servicios USING btree (fecha, hora_inicio);
+CREATE INDEX IF NOT EXISTS idx_resumen_pagos_actualizacion ON public.resumen_pagos USING btree (ultima_actualizacion);
+CREATE INDEX IF NOT EXISTS idx_resumen_pagos_saldo ON public.resumen_pagos USING btree (saldo_pendiente);
+CREATE INDEX IF NOT EXISTShttp://localhost:4200/ idx_servicio_disponibilidad_fecha ON public.servicio_disponibilidad USING btree (fecha, hora_inicio);
+CREATE INDEX IF NOT EXISTS idx_usuarios_email ON public.usuarios USING btree (email);
+
+
+-- TRIGGERS
+DROP TRIGGER IF EXISTS trigger_actualizar_resumen_estancias ON public.estancias;
+CREATE TRIGGER trigger_actualizar_resumen_estancias 
+    AFTER INSERT OR DELETE OR UPDATE ON public.estancias 
+    FOR EACH ROW EXECUTE FUNCTION public.actualizar_resumen_despues_cambio();
+
+DROP TRIGGER IF EXISTS trigger_actualizar_resumen_pagos ON public.pagos;
+CREATE TRIGGER trigger_actualizar_resumen_pagos 
+    AFTER INSERT OR DELETE OR UPDATE ON public.pagos 
+    FOR EACH ROW EXECUTE FUNCTION public.actualizar_resumen_despues_cambio();
+
+DROP TRIGGER IF EXISTS trigger_actualizar_resumen_reservas ON public.reservas;
+CREATE TRIGGER trigger_actualizar_resumen_reservas 
+    AFTER INSERT OR DELETE OR UPDATE ON public.reservas 
+    FOR EACH ROW EXECUTE FUNCTION public.actualizar_resumen_despues_cambio();
+
+DROP TRIGGER IF EXISTS trigger_actualizar_resumen_reservas_servicios ON public.reservas_servicios;
+CREATE TRIGGER trigger_actualizar_resumen_reservas_servicios 
+    AFTER INSERT OR DELETE OR UPDATE ON public.reservas_servicios 
+    FOR EACH ROW EXECUTE FUNCTION public.actualizar_resumen_despues_cambio();
+
+DROP TRIGGER IF EXISTS trigger_asignar_habitacion ON public.reservas;
+CREATE TRIGGER trigger_asignar_habitacion 
+    AFTER UPDATE ON public.reservas 
+    FOR EACH ROW EXECUTE FUNCTION public.asignar_habitacion_al_confirmar();
+
+-- FOREIGN KEYS
+--ALTER TABLE ONLY public.clientes_perfil
+--    ADD CONSTRAINT clientes_perfil_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
+
+--ALTER TABLE ONLY public.empleados_perfil
+--    ADD CONSTRAINT empleados_perfil_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
+
+--ALTER TABLE ONLY public.estancias
+--    ADD CONSTRAINT estancias_asignada_por_fk FOREIGN KEY (asignada_por_empleado_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
+
+--ALTER TABLE ONLY public.estancias
+--    ADD CONSTRAINT estancias_checkin_por_fk FOREIGN KEY (checkin_por_empleado_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
+
+--ALTER TABLE ONLY public.estancias
+--    ADD CONSTRAINT estancias_checkout_por_fk FOREIGN KEY (checkout_por_empleado_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
+
+--ALTER TABLE ONLY public.estancias
+--    ADD CONSTRAINT estancias_habitacion_asignada_fkey FOREIGN KEY (habitacion_asignada) REFERENCES public.habitaciones(id);
+
+--ALTER TABLE ONLY public.estancias
+--    ADD CONSTRAINT estancias_reserva_id_fkey FOREIGN KEY (reserva_id) REFERENCES public.reservas(id) ON DELETE CASCADE;
+
+--ALTER TABLE ONLY public.estancias
+--    ADD CONSTRAINT estancias_tipo_habitacion_id_fkey FOREIGN KEY (tipo_habitacion_id) REFERENCES public.habitaciones_tipos(id);
+
+--ALTER TABLE ONLY public.habitaciones
+--    ADD CONSTRAINT habitaciones_tipo_id_fkey FOREIGN KEY (tipo_id) REFERENCES public.habitaciones_tipos(id) ON DELETE CASCADE;
+
+--ALTER TABLE ONLY public.imagenes
+--    ADD CONSTRAINT imagenes_servicio_id_fkey FOREIGN KEY (servicio_id) REFERENCES public.servicios(id) ON DELETE CASCADE;
+
+--ALTER TABLE ONLY public.imagenes
+--    ADD CONSTRAINT imagenes_tipo_habitacion_id_fkey FOREIGN KEY (tipo_habitacion_id) REFERENCES public.habitaciones_tipos(id) ON DELETE CASCADE;
+
+--ALTER TABLE ONLY public.pagos
+--    ADD CONSTRAINT pagos_registrado_por_fk FOREIGN KEY (registrado_por_empleado_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
+
+--ALTER TABLE ONLY public.pagos
+--    ADD CONSTRAINT pagos_reserva_id_fkey FOREIGN KEY (reserva_id) REFERENCES public.reservas(id) ON DELETE CASCADE;
+
+--ALTER TABLE ONLY public.reservas
+--    ADD CONSTRAINT reservas_cliente_id_fkey FOREIGN KEY (cliente_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
+
+--ALTER TABLE ONLY public.reservas_servicios
+--    ADD CONSTRAINT reservas_servicios_reserva_id_fkey FOREIGN KEY (reserva_id) REFERENCES public.reservas(id) ON DELETE CASCADE;
+
+--ALTER TABLE ONLY public.reservas_servicios
+--    ADD CONSTRAINT reservas_servicios_servicio_id_fkey FOREIGN KEY (servicio_id) REFERENCES public.servicios(id);
+
+--ALTER TABLE ONLY public.resumen_pagos
+--    ADD CONSTRAINT resumen_pagos_reserva_id_fkey FOREIGN KEY (reserva_id) REFERENCES public.reservas(id) ON DELETE CASCADE;
+
+--ALTER TABLE ONLY public.reservas_servicios
+--    ADD CONSTRAINT rs_contratado_por_fk FOREIGN KEY (contratado_por_empleado_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
+
+--ALTER TABLE ONLY public.servicio_disponibilidad
+--    ADD CONSTRAINT servicio_disponibilidad_servicio_id_fkey FOREIGN KEY (servicio_id) REFERENCES public.servicios(id) ON DELETE CASCADE;

@@ -1,10 +1,11 @@
 package com.aponia.aponia_hotel.controller.admin;
 
 import com.aponia.aponia_hotel.entities.usuarios.Usuario;
+import com.aponia.aponia_hotel.security.jwt.UsuarioPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpSession;
 import java.util.Map;
 
 @RestController
@@ -14,9 +15,9 @@ public class AdminRestController {
 
     @GetMapping("/can-access")
     @Operation(summary = "Verifica si el usuario en sesión es ADMIN")
-    public Map<String,Object> canAccess(HttpSession session) {
-        Usuario.UserRole rol = (Usuario.UserRole) session.getAttribute("AUTH_USER_ROLE");
-        boolean ok = (rol == Usuario.UserRole.ADMIN);
+    @PreAuthorize("hasRole('ADMIN')")
+    public Map<String,Object> canAccess(@AuthenticationPrincipal UsuarioPrincipal principal) {
+        boolean ok = principal != null && principal.getRol() == Usuario.UserRole.ADMIN;
         return ok ? Map.of("ok", true) : Map.of("ok", false, "error", "No autorizado");
     }
 }

@@ -28,9 +28,11 @@ public class CorsConfig {
                 "GET",
                 "POST",
                 "PUT",
-                "DELETE"
+                "DELETE",
+                "PATCH",
+                "OPTIONS"
         ));
-
+        config.setExposedHeaders(Arrays.asList(HttpHeaders.AUTHORIZATION));
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
     }

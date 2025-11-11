@@ -2,14 +2,17 @@ package com.aponia.aponia_hotel.controller.home;
 
 import com.aponia.aponia_hotel.entities.usuarios.ClientePerfil;
 import com.aponia.aponia_hotel.entities.usuarios.Usuario;
+import com.aponia.aponia_hotel.security.jwt.UsuarioPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.aponia.aponia_hotel.service.usuarios.ClientePerfilService;
 import com.aponia.aponia_hotel.service.usuarios.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpSession;
+
 import org.springframework.web.bind.annotation.*;
 import com.aponia.aponia_hotel.service.usuarios.EmpleadoPerfilService;
 import com.aponia.aponia_hotel.entities.usuarios.EmpleadoPerfil;
 
-import jakarta.servlet.http.HttpSession;
 import java.util.Map;
 import java.util.Optional;
 
@@ -31,10 +34,9 @@ public class HomeRestController {
     }
     @GetMapping("/dashboard")
     @Operation(summary = "Datos básicos para dashboard del usuario autenticado")
-    public Object dashboard(HttpSession session) {
-        String email = (String) session.getAttribute("AUTH_USER_EMAIL");
-        if (email == null) return Map.of("ok", false, "error", "No autenticado");
-        Optional<Usuario> opt = usuarioService.findByEmail(email);
+      public Object dashboard(@AuthenticationPrincipal UsuarioPrincipal principal) {
+        if (principal == null) return Map.of("ok", false, "error", "No autenticado");
+        Optional<Usuario> opt = usuarioService.obtener(principal.getId());
         if (opt.isEmpty()) return Map.of("ok", false, "error", "Usuario no encontrado");
         Usuario u = opt.get();
         ClientePerfil perfil = clientePerfilService.obtener(u.getId()).orElse(null);
@@ -64,13 +66,12 @@ public class HomeRestController {
 
     @DeleteMapping("/user_info/{email}")
     @Operation(summary = "Eliminar usuario y perfil")
-    public Map<String,Object> deleteUser(@PathVariable String email, HttpSession session) {
+    public Map<String,Object> deleteUser(@PathVariable String email) {
         Optional<Usuario> opt = usuarioService.findByEmail(email);
         if (opt.isEmpty()) return Map.of("ok", false, "error", "Usuario no encontrado");
         var u = opt.get();
         usuarioService.eliminar(u.getId());
         clientePerfilService.eliminar(u.getId());
-        session.invalidate();
         return Map.of("ok", true);
     }
 }
